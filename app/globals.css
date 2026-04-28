@@ -1004,9 +1004,6 @@ body {
   .sbar {
     display: none;
   }
-  .bn {
-    display: none;
-  }
 }
 
 @media (max-width: 900px) {
