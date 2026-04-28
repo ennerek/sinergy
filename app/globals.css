@@ -777,11 +777,10 @@ body {
 
 .phone-wrap {
   width: 100%;
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   flex: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  display: block;
   align-items: stretch;
   gap: 0;
   padding: 0;

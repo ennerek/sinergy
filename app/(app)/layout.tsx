@@ -16,14 +16,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <main className="screens">{children}</main>
           <BottomNav />
         </div>
-
-        <aside className="app-sidebar">
-          <div className="app-sidebar-title">SOBRE LA APP</div>
-          <p className="app-sidebar-copy">Red privada de sinergias para empresarios. El 25% de cada cuota mensual va a proyectos de Makers-Ong.</p>
-          <div className="app-sidebar-card">
-            ❤ Proyecto activo: Escuela rural en Senegal
-          </div>
-        </aside>
       </div>
     </div>
   );
