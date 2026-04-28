@@ -38,11 +38,6 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    if (user && (pathname === '/auth/login' || pathname === '/auth/register')) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/home';
-      return NextResponse.redirect(url);
-    }
   } catch (error) {
     console.error('Middleware: failed to update Supabase session.', error);
     return NextResponse.next({ request });
