@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/stripe/webhook",
+      "destination": "/api/stripe/webhook"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/stripe/webhook",
+      "headers": [
+        { "key": "x-no-compression", "value": "1" }
+      ]
+    }
+  ]
+}
