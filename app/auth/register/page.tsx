@@ -13,6 +13,14 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const formatSignUpError = (err: unknown) => {
+    if (!err || typeof err !== 'object') return 'No se pudo crear la cuenta. Inténtalo de nuevo.';
+    const e = err as { message?: string; code?: string; status?: number };
+    const base = e.message || 'No se pudo crear la cuenta.';
+    const details = [e.code, e.status].filter(Boolean).join(' · ');
+    return details ? `${base} (${details})` : base;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -20,8 +28,19 @@ export default function RegisterPage() {
     if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres'); return; }
     setLoading(true);
     const supabase = createClient();
-    const { error: signUpError } = await supabase.auth.signUp({ email, password });
-    if (signUpError) { setError(signUpError.message); setLoading(false); return; }
+    const { error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback`, data: { lang: 'es' } },
+    });
+
+    if (signUpError) {
+      console.error('Supabase signUp failed', signUpError);
+      setError(formatSignUpError(signUpError));
+      setLoading(false);
+      return;
+    }
+
     router.push('/onboarding');
   };
 
