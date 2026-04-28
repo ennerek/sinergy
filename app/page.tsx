@@ -13,11 +13,11 @@ export default function LandingPage() {
   return (
     <div className="landing-hero" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       {/* NAV */}
-      <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 40px', maxWidth: 1100, margin: '0 auto', width: '100%' }}>
+      <nav className="landing-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 40px', maxWidth: 1100, margin: '0 auto', width: '100%' }}>
         <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.2rem', fontWeight: 900, color: '#fff', letterSpacing: '-.02em' }}>
           Makers Synergy <span style={{ color: '#B8922E' }}>Charity</span>
         </div>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+        <div className="landing-nav-actions" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <Link href="/auth/login" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, textDecoration: 'none' }}>Entrar</Link>
           <Link href="/auth/register" style={{ background: '#1A4731', color: '#fff', padding: '9px 20px', borderRadius: 50, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
             Unirse →
@@ -26,8 +26,8 @@ export default function LandingPage() {
       </nav>
 
       {/* HERO */}
-      <section style={{ maxWidth: 1100, margin: '0 auto', padding: '60px 40px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
-        <div>
+      <section className="landing-hero-grid landing-section" style={{ maxWidth: 1100, margin: '0 auto', padding: '60px 40px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
+        <div className="landing-hero-copy">
           {/* Badge */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(184,146,46,0.1)', border: '1px solid rgba(184,146,46,0.25)', borderRadius: 50, padding: '5px 14px', fontSize: 11, fontWeight: 700, color: '#E5CE82', letterSpacing: '.1em', marginBottom: 28 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#3DDB6E', display: 'inline-block', animation: 'pulse 2s infinite' }} />
@@ -43,7 +43,7 @@ export default function LandingPage() {
             Red privada de sinergias empresariales donde el 25% de tu cuota mensual financia proyectos de educación en África. Conecta, crece y dona al mismo tiempo.
           </p>
 
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div className="landing-cta-row" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <Link href="/auth/register" style={{ background: '#1A4731', color: '#fff', padding: '14px 28px', borderRadius: 50, fontSize: 15, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               Unirme al círculo →
             </Link>
@@ -53,15 +53,15 @@ export default function LandingPage() {
           </div>
 
           {/* Floating badge */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 50, padding: '7px 14px', fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 24 }}>
+          <div className="landing-floating-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 50, padding: '7px 14px', fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 24 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#3DDB6E', display: 'inline-block', animation: 'pulse 2s infinite' }} />
             Miembro del círculo · Rotary Valencia
           </div>
         </div>
 
         {/* Phone mockup placeholder */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <div style={{ width: 280, height: 560, borderRadius: 40, background: '#ECE5DD', boxShadow: '0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(26,71,49,0.15)', position: 'relative', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="landing-preview-wrap" style={{ display: 'flex', justifyContent: 'center' }}>
+          <div className="landing-preview-card" style={{ width: 280, height: 560, borderRadius: 40, background: '#ECE5DD', boxShadow: '0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(26,71,49,0.15)', position: 'relative', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
             {/* Mini header */}
             <div style={{ background: '#1A4731', padding: '20px 18px 24px', color: '#fff' }}>
               <div style={{ fontSize: 10, opacity: .7, marginBottom: 4 }}>Buenos días</div>
@@ -105,12 +105,12 @@ export default function LandingPage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section style={{ maxWidth: 1100, margin: '0 auto', padding: '80px 40px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+      <section className="landing-section" style={{ maxWidth: 1100, margin: '0 auto', padding: '80px 40px' }}>
+        <div className="landing-section-head" style={{ textAlign: 'center', marginBottom: 48 }}>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.15em', color: '#E5CE82', marginBottom: 12 }}>CÓMO FUNCIONA</div>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', fontWeight: 900, color: '#fff' }}>El conector respeta tu privacidad</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24 }}>
+        <div className="landing-steps-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24 }}>
           {[
             { n: '1', title: 'Publicas', desc: 'Qué ofreces y qué buscas. Sin fotos, sin empresa visible.' },
             { n: '2', title: 'SISI cruza', desc: 'La IA analiza tu perfil con miles de miembros activos.' },
@@ -124,13 +124,13 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 28, background: 'rgba(26,71,49,0.15)', border: '1px solid rgba(26,71,49,0.3)', borderRadius: 12, padding: '12px 20px', fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>
+        <div className="landing-privacy-note" style={{ marginTop: 28, background: 'rgba(26,71,49,0.15)', border: '1px solid rgba(26,71,49,0.3)', borderRadius: 12, padding: '12px 20px', fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center' }}>
           Tu teléfono, email y datos de contacto <strong style={{ color: '#E5CE82' }}>solo se comparten cuando ambos aceptáis</strong>.
         </div>
       </section>
 
       {/* STATS */}
-      <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 40px 80px', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
+      <section className="landing-stats-grid landing-section" style={{ maxWidth: 1100, margin: '0 auto', padding: '0 40px 80px', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
         {[
           { n: '3.412', l: 'Miembros activos' },
           { n: '6', l: 'Grupos empresariales' },
@@ -144,10 +144,10 @@ export default function LandingPage() {
       </section>
 
       {/* GROUPS */}
-      <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 40px 80px' }}>
+      <section className="landing-section" style={{ maxWidth: 1100, margin: '0 auto', padding: '0 40px 80px' }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.15em', color: '#E5CE82', marginBottom: 12 }}>GRUPOS CONECTADOS</div>
         <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.4rem,2.5vw,2rem)', fontWeight: 900, color: '#fff', marginBottom: 32 }}>Tu círculo ya está aquí</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
+        <div className="landing-groups-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
           {GROUPS.map(g => (
             <div key={g.name} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '16px 14px' }}>
               <div style={{ width: 40, height: 40, borderRadius: 11, background: g.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Playfair Display', serif", fontWeight: 900, color: '#fff', fontSize: 16, marginBottom: 10 }}>{g.icon}</div>
@@ -160,8 +160,8 @@ export default function LandingPage() {
       </section>
 
       {/* NGO PROJECT */}
-      <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 40px 80px' }}>
-        <div style={{ background: 'linear-gradient(135deg, #1A4731 0%, #0E3426 100%)', borderRadius: 20, padding: '32px', display: 'grid', gridTemplateColumns: '1fr auto', gap: 32, alignItems: 'center' }}>
+      <section className="landing-section" style={{ maxWidth: 1100, margin: '0 auto', padding: '0 40px 80px' }}>
+        <div className="landing-project-grid" style={{ background: 'linear-gradient(135deg, #1A4731 0%, #0E3426 100%)', borderRadius: 20, padding: '32px', display: 'grid', gridTemplateColumns: '1fr auto', gap: 32, alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.15em', color: '#E5CE82', marginBottom: 8 }}>PROYECTO ACTIVO · MAKERS-ONG</div>
             <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.4rem', fontWeight: 900, color: '#fff', marginBottom: 8 }}>Escuela rural en Senegal</h3>
@@ -182,7 +182,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA FINAL */}
-      <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 40px 100px', textAlign: 'center' }}>
+      <section className="landing-final landing-section" style={{ maxWidth: 1100, margin: '0 auto', padding: '0 40px 100px', textAlign: 'center' }}>
         <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem,3vw,2.8rem)', fontWeight: 900, color: '#fff', marginBottom: 16 }}>
           Tu círculo te está esperando
         </h2>
@@ -195,7 +195,7 @@ export default function LandingPage() {
       </section>
 
       {/* FOOTER */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px 40px', textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.25)', width: '100%' }}>
+      <footer className="landing-footer" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px 40px', textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.25)', width: '100%' }}>
         <span style={{ color: '#B8922E' }}>Diseñado por MAKERS-ONG</span> · Operado por PIAITIC · Pia Dreams 2026
       </footer>
     </div>
