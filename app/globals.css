@@ -40,12 +40,12 @@ body {
 
 .desktop-bar {
   width: 100%;
-  max-width: 900px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 16px 40px;
   flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
 }
 
 .d-logo {
@@ -776,29 +776,28 @@ body {
 }
 
 .phone-wrap {
-  width: min(1220px, 100%);
+  width: 100%;
+  max-width: 1400px;
   margin: 0 auto;
   flex: 1;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 280px;
   align-items: stretch;
-  gap: 24px;
-  padding: 0 24px 24px;
+  gap: 0;
+  padding: 0;
 }
 
 .phone {
   width: 100%;
   height: calc(100dvh - 84px);
-  border-radius: 22px;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.06),
-    0 20px 60px rgba(0,0,0,0.45);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .screens {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 14px;
+  padding: 28px 40px 28px;
 }
 
 .sc {
@@ -820,7 +819,8 @@ body {
   gap: 16px;
   color: rgba(255,255,255,0.65);
   font-size: 13px;
-  padding-top: 8px;
+  padding: 28px 28px 28px 24px;
+  border-left: 1px solid rgba(255,255,255,0.07);
 }
 
 .app-sidebar-title {
@@ -1002,6 +1002,9 @@ body {
 
 @media (min-width: 901px) {
   .sbar {
+    display: none;
+  }
+  .bn {
     display: none;
   }
 }
