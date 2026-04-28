@@ -1,28 +1,30 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
-
 export interface SisiMessage {
   role: 'user' | 'assistant';
   content: string;
 }
 
 export async function askSisi(
+  userId: string,
   userMessage: string,
-  history: SisiMessage[]
+  history: SisiMessage[] = []
 ): Promise<string> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY is missing');
+  }
+
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
 
   const [profileRes, synergiesRes, matchesRes] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).single(),
-    supabase.from('synergies').select('*').eq('user_id', user.id).eq('is_active', true).limit(5),
+    supabase.from('profiles').select('*').eq('id', userId).single(),
+    supabase.from('synergies').select('*').eq('user_id', userId).eq('is_active', true).limit(5),
     supabase
       .from('matches')
       .select('*, profiles!matches_user_id_b_fkey(full_name, company_name, sector)')
-      .or(`user_id_a.eq.${user.id},user_id_b.eq.${user.id}`)
+      .or(`user_id_a.eq.${userId},user_id_b.eq.${userId}`)
       .order('score', { ascending: false })
       .limit(3),
   ]);
@@ -67,8 +69,8 @@ INSTRUCCIONES:
 
   // Persist in DB
   await supabase.from('sisi_messages').insert([
-    { user_id: user.id, role: 'user', content: userMessage },
-    { user_id: user.id, role: 'assistant', content: reply },
+    { user_id: userId, role: 'user', content: userMessage },
+    { user_id: userId, role: 'assistant', content: reply },
   ]);
 
   return reply;

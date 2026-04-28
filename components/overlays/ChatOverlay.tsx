@@ -35,6 +35,7 @@ export default function ChatOverlay({ open, onClose, profile }: Props) {
   const send = async (text?: string) => {
     const msg = text || input.trim();
     if (!msg || loading) return;
+    const history = messages.slice(-12);
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: msg }]);
     setLoading(true);
@@ -43,9 +44,13 @@ export default function ChatOverlay({ open, onClose, profile }: Props) {
       const res = await fetch('/api/sisi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg }),
+        body: JSON.stringify({ message: msg, history }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setMessages(prev => [...prev, { role: 'assistant', content: data?.error || 'No pude procesar tu solicitud ahora mismo.' }]);
+        return;
+      }
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply || 'Lo siento, no pude procesar eso.' }]);
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Error de conexión. Por favor, inténtalo de nuevo.' }]);
