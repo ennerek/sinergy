@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import NivelesOverlay from '@/components/overlays/NivelesOverlay';
@@ -22,7 +22,7 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
   const [chatOpen, setChatOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
 
-  // Editable fields
+  // Editable fields — synced via useEffect so router.refresh() updates them
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [companyName, setCompanyName] = useState(profile?.company_name || '');
   const [roleTitle, setRoleTitle] = useState(profile?.role_title || '');
@@ -34,6 +34,20 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [saveOk, setSaveOk] = useState(false);
+
+  // Re-sync local state when server re-passes new profile data (after router.refresh())
+  useEffect(() => {
+    if (!profile) return;
+    setFullName(profile.full_name || '');
+    setCompanyName(profile.company_name || '');
+    setRoleTitle(profile.role_title || '');
+    setSector(profile.sector || '');
+    setBio(profile.bio || '');
+    setInterests(profile.synergy_interests ?? []);
+    setOfferings(profile.offerings ?? []);
+    setAvatarUrl(profile.avatar_url || '');
+  }, [profile]);
 
   const initials = (fullName || 'U').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
   const groupName = (profile?.user_groups?.[0] as any)?.groups?.name || 'Red Synergy';
@@ -50,25 +64,34 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
     if (!file) return;
     setUploadingPhoto(true);
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setUploadingPhoto(false); return; }
     const ext = file.name.split('.').pop();
-    const path = `${profile.id}.${ext}`;
+    const path = `${user.id}.${ext}`;
     const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
     if (!error) {
       const { data } = supabase.storage.from('avatars').getPublicUrl(path);
       const url = data.publicUrl + '?t=' + Date.now();
-      await supabase.from('profiles').update({ avatar_url: url }).eq('id', profile.id);
+      await supabase.from('profiles').upsert({ id: user.id, avatar_url: url });
       setAvatarUrl(url);
     }
     setUploadingPhoto(false);
-    // Reset so same file can be selected again
     e.target.value = '';
   };
 
   const saveProfile = async () => {
     setSaving(true);
     setSaveError('');
+    setSaveOk(false);
     const supabase = createClient();
-    const { error } = await supabase.from('profiles').update({
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setSaveError('Sesión expirada. Recarga la página.');
+      setSaving(false);
+      return;
+    }
+    const { error } = await supabase.from('profiles').upsert({
+      id: user.id,
       full_name: fullName,
       company_name: companyName,
       role_title: roleTitle,
@@ -76,20 +99,30 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
       bio,
       synergy_interests: interests,
       offerings,
-    }).eq('id', profile.id);
+    });
     setSaving(false);
     if (error) {
       setSaveError(error.message || 'No se pudo guardar. Inténtalo de nuevo.');
       return;
     }
-    setEditMode(false);
-    router.refresh();
+    setSaveOk(true);
+    setTimeout(() => {
+      setEditMode(false);
+      setSaveOk(false);
+      router.refresh();
+    }, 800);
   };
 
   const signOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push('/');
+    router.push('/auth/login');
+  };
+
+  const openEdit = () => {
+    setSaveError('');
+    setSaveOk(false);
+    setEditMode(true);
   };
 
   return (
@@ -97,7 +130,6 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
 
       {/* ── PROFILE HEADER ── */}
       <div className="ph">
-        {/* Avatar with photo upload */}
         <div style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }} onClick={() => fileRef.current?.click()}>
           <div className="phav" style={{ overflow: 'hidden', padding: avatarUrl ? 0 : undefined }}>
             {avatarUrl
@@ -115,7 +147,6 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
         </div>
         <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadPhoto} />
 
-        {/* Name / role */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="phn">{fullName || 'Usuario'}</div>
           <div className="php">
@@ -125,9 +156,8 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
           <div className="pll">{groupIcon} {groupName}</div>
         </div>
 
-        {/* Edit button */}
         <button
-          onClick={() => setEditMode(true)}
+          onClick={openEdit}
           style={{
             flexShrink: 0, background: 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.3)',
             borderRadius: 8, padding: '6px 12px', color: '#fff', fontSize: 11,
@@ -152,14 +182,12 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
       {/* ── BODY ── */}
       <div className="pad">
 
-        {/* Stats */}
         <div className="pst" style={{ marginTop: 13 }}>
           <div className="ps"><div className="psn">{matchesCount}</div><div className="psl">Matches</div></div>
           <div className="ps"><div className="psn">{connectionsCount}</div><div className="psl">Conexiones</div></div>
           <div className="ps"><div className="psn">{synergiesCount}</div><div className="psl">Sinergias</div></div>
         </div>
 
-        {/* Bio */}
         <div className="crd-box" style={{ marginBottom: 11 }}>
           <div className="slbl" style={{ marginBottom: 5 }}>Bio</div>
           <div style={{ fontSize: 13, color: bio ? 'var(--ink)' : 'var(--mut)', lineHeight: 1.6 }}>
@@ -167,7 +195,6 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
           </div>
         </div>
 
-        {/* Interests */}
         {interests.length > 0 && (
           <div style={{ marginBottom: 11 }}>
             <div className="slbl">Busco sinergias en</div>
@@ -179,7 +206,6 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
           </div>
         )}
 
-        {/* Offerings */}
         {offerings.length > 0 && (
           <div style={{ marginBottom: 11 }}>
             <div className="slbl">Puedo ofrecer</div>
@@ -191,12 +217,11 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
           </div>
         )}
 
-        {/* Settings */}
         <div className="slbl" style={{ marginTop: 4 }}>Configuración</div>
         <div className="crd-box" style={{ padding: 0, overflow: 'hidden', marginBottom: 11 }}>
           {[
             { icon: '🤖', label: 'Hablar con SISI', sub: 'Asistente de inteligencia artificial', action: () => setChatOpen(true) },
-            { icon: '🔔', label: 'Notificaciones', sub: 'Gestionar alertas', action: () => {} },
+            { icon: '✏️', label: 'Editar perfil', sub: 'Nombre, empresa, bio e intereses', action: openEdit },
             { icon: '🔒', label: 'Privacidad', sub: 'Datos y visibilidad', action: () => {} },
           ].map(s => (
             <div key={s.label} className="si" onClick={s.action}>
@@ -220,13 +245,10 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
         <div style={{ height: 24 }} />
       </div>
 
-      {/* ── EDIT PANEL (overlay) ── */}
+      {/* ── EDIT PANEL — uses same .overlay class as ChatOverlay/NivelesOverlay ── */}
       {editMode && (
-        <div style={{
-          position: 'absolute', inset: 0, background: 'var(--pbg)',
-          zIndex: 15, display: 'flex', flexDirection: 'column', overflowY: 'auto',
-        }}>
-          {/* Header */}
+        <div className="overlay" style={{ background: 'var(--pbg)', zIndex: 35, overflowY: 'auto' }}>
+          {/* Sticky header */}
           <div style={{
             background: 'var(--tl)', padding: '14px 16px',
             display: 'flex', alignItems: 'center', gap: 11, flexShrink: 0,
@@ -234,11 +256,11 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
           }}>
             <button onClick={() => setEditMode(false)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer', padding: 0, opacity: .85, lineHeight: 1 }}>‹</button>
             <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.1rem', fontWeight: 900, color: '#fff', flex: 1 }}>Editar perfil</span>
-            <button onClick={saveProfile} disabled={saving} style={{
-              background: saving ? 'rgba(255,255,255,.2)' : 'var(--gd)', border: 'none',
+            <button onClick={saveProfile} disabled={saving || saveOk} style={{
+              background: saveOk ? '#2F7A5A' : saving ? 'rgba(255,255,255,.2)' : 'var(--gd)', border: 'none',
               borderRadius: 50, padding: '7px 16px',
-              fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, color: '#fff', cursor: 'pointer',
-            }}>{saving ? 'Guardando…' : 'Guardar'}</button>
+              fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, color: '#fff', cursor: saving || saveOk ? 'default' : 'pointer',
+            }}>{saveOk ? '✓ Guardado' : saving ? 'Guardando…' : 'Guardar'}</button>
           </div>
 
           <div style={{ padding: '20px 16px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -249,18 +271,14 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
               </div>
             )}
 
-            {/* Photo section */}
+            {/* Photo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <div style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }} onClick={() => fileRef.current?.click()}>
                 {avatarUrl
                   ? <div style={{ width: 72, height: 72, borderRadius: 16, overflow: 'hidden', border: '2px solid var(--gd)' }}>
                       <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
-                  : <div style={{
-                      width: 72, height: 72, borderRadius: 16,
-                      background: 'rgba(26,71,49,.07)', border: '2px dashed var(--bdr)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
+                  : <div style={{ width: 72, height: 72, borderRadius: 16, background: 'rgba(26,71,49,.07)', border: '2px dashed var(--bdr)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <span style={{ fontSize: 26 }}>📷</span>
                     </div>
                 }
