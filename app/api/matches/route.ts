@@ -57,15 +57,21 @@ function calcScore(a: { categories: string[]; description: string; budget_range:
   return Math.min(cat + text + budget, 100);
 }
 
-function buildReasons(a: { categories: string[]; budget_range: string | null },
-                      b: { categories: string[]; budget_range: string | null }): string[] {
+function buildReasons(a: { categories: string[]; budget_range: string | null; description: string },
+                      b: { categories: string[]; budget_range: string | null; description: string }): string[] {
   const reasons: string[] = [];
   const shared = a.categories.filter(c =>
     b.categories.some(d => c.toLowerCase().includes(d.toLowerCase()) || d.toLowerCase().includes(c.toLowerCase())),
   );
   if (shared.length) reasons.push(`Categorías: ${shared.join(', ')}`);
   if (a.budget_range && a.budget_range === b.budget_range) reasons.push(`Ticket: ${a.budget_range}`);
-  if (!reasons.length) reasons.push('Palabras clave en descripción coincidentes');
+  // Show actual overlapping keywords from descriptions
+  const wA = tokenize(a.description);
+  const wB = tokenize(b.description);
+  const sharedWords: string[] = [];
+  wA.forEach(w => { if (wB.has(w)) sharedWords.push(w); });
+  if (sharedWords.length > 0) reasons.push(`Palabras clave: ${sharedWords.slice(0, 5).join(', ')}`);
+  if (!reasons.length) reasons.push('Descripción con coincidencias potenciales');
   return reasons;
 }
 
@@ -183,8 +189,8 @@ export async function POST() {
         synergy_id_b: synB,
         score,
         score_reasons: buildReasons(
-          { categories: mine.categories ?? [], budget_range: mine.budget_range ?? null },
-          { categories: theirs.categories ?? [], budget_range: theirs.budget_range ?? null },
+          { categories: mine.categories ?? [], budget_range: mine.budget_range ?? null, description: mine.description ?? '' },
+          { categories: theirs.categories ?? [], budget_range: theirs.budget_range ?? null, description: theirs.description ?? '' },
         ),
         requires_level: requiresLevel,
       });

@@ -13,16 +13,28 @@ interface Props {
   project: any;
   pulse: any;
   networkCount: number;
+  pendingRequests: any[];
 }
 
 const DAYS_ES = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 const MONTHS_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
-export default function HomeClient({ profile, matches, synergiesCount, project, pulse, networkCount }: Props) {
+export default function HomeClient({ profile, matches, synergiesCount, project, pulse, networkCount, pendingRequests }: Props) {
   const router = useRouter();
   const [chatOpen, setChatOpen] = useState(false);
   const [contactTarget, setContactTarget] = useState<any>(null);
   const [nivelesOpen, setNivelesOpen] = useState(false);
+  const [requests, setRequests] = useState<any[]>(pendingRequests);
+  const [expandedMsg, setExpandedMsg] = useState<string | null>(null);
+
+  const respondRequest = async (id: string, accepted: boolean) => {
+    await fetch(`/api/connections/${id}/respond`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accepted }),
+    });
+    setRequests(prev => prev.filter(r => r.id !== id));
+  };
 
   const now = new Date();
   const dateStr = `${DAYS_ES[now.getDay()]} ${now.getDate()} de ${MONTHS_ES[now.getMonth()]}`;
@@ -102,6 +114,71 @@ export default function HomeClient({ profile, matches, synergiesCount, project, 
             </button>
           ))}
         </div>
+
+        {/* Incoming connection requests */}
+        {requests.length > 0 && (
+          <>
+            <div className="slbl" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              Solicitudes recibidas
+              <span style={{ background: '#E53E3E', color: '#fff', borderRadius: 99, fontSize: 10, fontWeight: 700, padding: '1px 7px' }}>{requests.length}</span>
+            </div>
+            {requests.map(req => {
+              const from = req.from;
+              const name = from?.full_name || 'Usuario';
+              const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+              const isExpanded = expandedMsg === req.id;
+              return (
+                <div key={req.id} style={{
+                  background: 'var(--white)', border: '1px solid var(--bdr)', borderRadius: 14,
+                  padding: '12px 14px', marginBottom: 10,
+                }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+                    <div style={{
+                      width: 38, height: 38, borderRadius: 10, background: 'rgba(26,71,49,.1)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 13, fontWeight: 700, color: 'var(--tl)', flexShrink: 0,
+                    }}>{initials}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--mut)' }}>{from?.company_name || from?.sector || 'Empresario'}</div>
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--mut)' }}>
+                      {new Date(req.created_at).toLocaleDateString('es-ES')}
+                    </div>
+                  </div>
+                  {req.message && (
+                    <div style={{
+                      background: 'rgba(26,71,49,.05)', borderRadius: 8, padding: '8px 10px',
+                      fontSize: 12, color: 'var(--ink)', lineHeight: 1.6, marginBottom: 10,
+                      maxHeight: isExpanded ? 'none' : 56, overflow: 'hidden', position: 'relative',
+                    }}>
+                      {req.message}
+                      {!isExpanded && req.message.length > 100 && (
+                        <button onClick={() => setExpandedMsg(req.id)} style={{ display: 'block', fontSize: 11, color: 'var(--tl)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 2, padding: 0 }}>
+                          Ver más ↓
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => respondRequest(req.id, true)}
+                      style={{ flex: 1, background: 'var(--tl)', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 0', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}
+                    >
+                      ✓ Aceptar
+                    </button>
+                    <button
+                      onClick={() => respondRequest(req.id, false)}
+                      style={{ flex: 1, background: 'rgba(0,0,0,.05)', color: 'var(--mut)', border: 'none', borderRadius: 10, padding: '9px 0', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}
+                    >
+                      Rechazar
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
 
         {/* Matches */}
         <div className="slbl">Matches detectados</div>

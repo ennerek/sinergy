@@ -11,7 +11,7 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/auth/login');
 
-  const [profileRes, userGroupsRes, synergiesRes, projectRes, matchesRes] = await Promise.all([
+  const [profileRes, userGroupsRes, synergiesRes, projectRes, matchesRes, incomingRes] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
     supabase.from('user_groups').select('group_id, groups(name,icon,slug)').eq('user_id', user.id),
     supabase.from('synergies').select('id').eq('user_id', user.id).eq('is_active', true),
@@ -27,6 +27,13 @@ export default async function HomePage() {
       .eq('status', 'pending')
       .order('score', { ascending: false })
       .limit(10),
+    supabase
+      .from('connection_requests')
+      .select('id, message, created_at, from_user_id, from:profiles!connection_requests_from_user_id_fkey(id, full_name, company_name, sector)')
+      .eq('to_user_id', user.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(20),
   ]);
 
   const [pulseRes, networkRes] = await Promise.all([
@@ -108,6 +115,7 @@ export default async function HomePage() {
       project={projectRes.data}
       pulse={pulseRes.data}
       networkCount={networkRes.data?.length ?? 0}
+      pendingRequests={incomingRes.data ?? []}
     />
   );
 }
