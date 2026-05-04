@@ -77,7 +77,11 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
     if (!error) {
       const { data } = supabase.storage.from('avatars').getPublicUrl(path);
       const url = data.publicUrl + '?t=' + Date.now();
-      await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id);
+      await supabase.from('profiles').upsert({
+        id: user.id,
+        avatar_url: url,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
       setAvatarUrl(url);
     }
     setUploadingPhoto(false);
@@ -95,7 +99,8 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
       setSaving(false);
       return;
     }
-    const { error } = await supabase.from('profiles').update({
+    const { error } = await supabase.from('profiles').upsert({
+      id: user.id,
       full_name: fullName,
       company_name: companyName,
       role_title: roleTitle,
@@ -104,7 +109,7 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
       synergy_interests: interests,
       offerings,
       updated_at: new Date().toISOString(),
-    }).eq('id', user.id);
+    }, { onConflict: 'id' });
     setSaving(false);
     if (error) {
       setSaveError(error.message || 'No se pudo guardar. Inténtalo de nuevo.');

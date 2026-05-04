@@ -20,8 +20,22 @@ export default function LoginPage() {
     const supabase = createClient();
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     if (signInError) { setError(signInError.message); setLoading(false); return; }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setError('No se pudo recuperar tu sesión. Inténtalo de nuevo.');
+      setLoading(false);
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('id', user.id)
+      .maybeSingle();
+
     router.refresh();
-    router.push('/home');
+    router.push(profile?.onboarding_completed ? '/home' : '/onboarding');
   };
 
   const handleReset = async () => {

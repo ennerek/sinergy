@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 import HomeClient from './HomeClient';
 
 function intersect(a: string[], b: string[]): string[] {
@@ -8,10 +9,11 @@ function intersect(a: string[], b: string[]): string[] {
 export default async function HomePage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/auth/login');
 
   const [profileRes, synergiesRes, projectRes, matchesRes] = await Promise.all([
-    supabase.from('profiles').select('*, user_groups(group_id, groups(name,icon,slug))').eq('id', user!.id).single(),
-    supabase.from('synergies').select('id').eq('user_id', user!.id).eq('is_active', true),
+    supabase.from('profiles').select('*, user_groups(group_id, groups(name,icon,slug))').eq('id', user.id).maybeSingle(),
+    supabase.from('synergies').select('id').eq('user_id', user.id).eq('is_active', true),
     supabase.from('ngo_projects').select('*').eq('is_active', true).single(),
     supabase
       .from('matches')
@@ -20,18 +22,19 @@ export default async function HomePage() {
         a:profiles!matches_user_id_a_fkey(id, full_name, company_name, sector, access_level),
         b:profiles!matches_user_id_b_fkey(id, full_name, company_name, sector, access_level)
       `)
-      .or(`user_id_a.eq.${user!.id},user_id_b.eq.${user!.id}`)
+      .or(`user_id_a.eq.${user.id},user_id_b.eq.${user.id}`)
       .eq('status', 'pending')
       .order('score', { ascending: false })
       .limit(10),
   ]);
 
   const [pulseRes, networkRes] = await Promise.all([
-    supabase.from('user_weekly_pulse').select('open_requests, network_count').eq('user_id', user!.id).single(),
-    supabase.from('connections').select('id').or(`user_id_a.eq.${user!.id},user_id_b.eq.${user!.id}`),
+    supabase.from('user_weekly_pulse').select('open_requests, network_count').eq('user_id', user.id).single(),
+    supabase.from('connections').select('id').or(`user_id_a.eq.${user.id},user_id_b.eq.${user.id}`),
   ]);
 
   const profile = profileRes.data;
+  if (!profile?.onboarding_completed) redirect('/onboarding');
   const userLevel: number = profile?.access_level ?? 1;
 
   // Synergy-based matches (from matches table)
@@ -59,7 +62,7 @@ export default async function HomePage() {
     : await supabase
         .from('profiles')
         .select('id, full_name, company_name, sector, access_level, synergy_interests, offerings')
-        .neq('id', user!.id);
+        .neq('id', user.id);
 
   const dynamicMatches = (others ?? [])
     .map(other => {
@@ -73,7 +76,7 @@ export default async function HomePage() {
     .slice(0, 5)
     .map(m => ({
       id: null as null,
-      user_id_a: user!.id,
+      user_id_a: user.id,
       user_id_b: m.other.id,
       score: Math.min(100, m.score * 20),
       score_reasons: [
@@ -92,7 +95,7 @@ export default async function HomePage() {
     <HomeClient
       profile={{
         ...profile,
-        full_name: profile?.full_name || user!.user_metadata?.full_name || '',
+        full_name: profile?.full_name || user.user_metadata?.full_name || '',
       }}
       matches={matches}
       synergiesCount={synergiesRes.data?.length ?? 0}
