@@ -14,6 +14,11 @@ interface Props {
 }
 
 const INTERESTS_ALL = ['Tecnología', 'Inversión', 'Marketing', 'Legal', 'Salud', 'Educación', 'Sostenibilidad', 'Exportación', 'Recursos humanos'];
+const SECTORS = [
+  'Tecnología/Software', 'Servicios profesionales', 'Inmobiliario', 'Industria/Manufactura',
+  'Salud y bienestar', 'Educación', 'Hostelería/Turismo', 'Finanzas/Inversión',
+  'Consumo/Retail', 'Legal', 'Otro',
+];
 
 export default function PerfilClient({ profile, synergiesCount, connectionsCount, matchesCount }: Props) {
   const router = useRouter();
@@ -72,7 +77,7 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
     if (!error) {
       const { data } = supabase.storage.from('avatars').getPublicUrl(path);
       const url = data.publicUrl + '?t=' + Date.now();
-      await supabase.from('profiles').upsert({ id: user.id, avatar_url: url });
+      await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id);
       setAvatarUrl(url);
     }
     setUploadingPhoto(false);
@@ -90,8 +95,7 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
       setSaving(false);
       return;
     }
-    const { error } = await supabase.from('profiles').upsert({
-      id: user.id,
+    const { error } = await supabase.from('profiles').update({
       full_name: fullName,
       company_name: companyName,
       role_title: roleTitle,
@@ -99,7 +103,8 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
       bio,
       synergy_interests: interests,
       offerings,
-    });
+      updated_at: new Date().toISOString(),
+    }).eq('id', user.id);
     setSaving(false);
     if (error) {
       setSaveError(error.message || 'No se pudo guardar. Inténtalo de nuevo.');
@@ -308,7 +313,6 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
               { label: 'Nombre completo', value: fullName, set: setFullName, placeholder: 'Tu nombre y apellidos' },
               { label: 'Empresa', value: companyName, set: setCompanyName, placeholder: 'Nombre de tu empresa o proyecto' },
               { label: 'Cargo', value: roleTitle, set: setRoleTitle, placeholder: 'CEO, Fundador, Director, Consultor…' },
-              { label: 'Sector', value: sector, set: setSector, placeholder: 'Tecnología, Salud, Fintech, Retail…' },
             ] as { label: string; value: string; set: (v: string) => void; placeholder: string }[]).map(f => (
               <div key={f.label}>
                 <div className="slbl" style={{ marginBottom: 5 }}>{f.label}</div>
@@ -324,6 +328,26 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
                 />
               </div>
             ))}
+
+            {/* Sector dropdown */}
+            <div>
+              <div className="slbl" style={{ marginBottom: 5 }}>Sector</div>
+              <select
+                value={sector}
+                onChange={e => setSector(e.target.value)}
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: 10,
+                  border: '1.5px solid var(--bdr)', background: 'var(--white)',
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: sector ? 'var(--ink)' : 'var(--mut)', outline: 'none',
+                  appearance: 'none', WebkitAppearance: 'none',
+                }}
+              >
+                <option value="">Selecciona tu sector…</option>
+                {SECTORS.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
 
             {/* Bio */}
             <div>

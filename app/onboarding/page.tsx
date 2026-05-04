@@ -20,21 +20,27 @@ const SECTORS = [
 ];
 
 const SYNERGY_INTERESTS = [
-  { id: 'clientes_cruzados', icon: '🤝', label: 'Clientes cruzados' },
-  { id: 'complementariedad', icon: '🔗', label: 'Complementariedad' },
-  { id: 'inversion',         icon: '💰', label: 'Inversión' },
-  { id: 'eventos',           icon: '🎪', label: 'Eventos conjuntos' },
-  { id: 'internacionalizacion', icon: '🌍', label: 'Internacionalización' },
-  { id: 'mentoria',          icon: '🎓', label: 'Mentoría' },
+  { icon: '💻', label: 'Tecnología' },
+  { icon: '💰', label: 'Inversión' },
+  { icon: '📢', label: 'Marketing' },
+  { icon: '⚖️', label: 'Legal' },
+  { icon: '🏥', label: 'Salud' },
+  { icon: '🎓', label: 'Educación' },
+  { icon: '🌿', label: 'Sostenibilidad' },
+  { icon: '🌍', label: 'Exportación' },
+  { icon: '👥', label: 'Recursos humanos' },
 ];
 
 const OFFERINGS = [
-  { id: 'tecnologia',     icon: '💻', label: 'Tecnología/producto' },
-  { id: 'red_contactos',  icon: '👥', label: 'Red de contactos' },
-  { id: 'expertise',      icon: '🎓', label: 'Expertise' },
-  { id: 'espacios',       icon: '🏢', label: 'Espacios o recursos' },
-  { id: 'inversion',      icon: '💸', label: 'Inversión' },
-  { id: 'eventos',        icon: '🎪', label: 'Organización eventos' },
+  { icon: '💻', label: 'Tecnología' },
+  { icon: '💰', label: 'Inversión' },
+  { icon: '📢', label: 'Marketing' },
+  { icon: '⚖️', label: 'Legal' },
+  { icon: '🏥', label: 'Salud' },
+  { icon: '🎓', label: 'Educación' },
+  { icon: '🌿', label: 'Sostenibilidad' },
+  { icon: '🌍', label: 'Exportación' },
+  { icon: '👥', label: 'Recursos humanos' },
 ];
 
 type Step = 'splash' | 0 | 1 | 2 | 3 | 4 | 'result';
@@ -210,9 +216,9 @@ export default function OnboardingPage() {
           <div>
             {SYNERGY_INTERESTS.map(i => (
               <div
-                key={i.id}
-                className={`ob-option${interests.includes(i.id) ? ' sel' : ''}`}
-                onClick={() => setInterests(toggleArr(interests, i.id))}
+                key={i.label}
+                className={`ob-option${interests.includes(i.label) ? ' sel' : ''}`}
+                onClick={() => setInterests(toggleArr(interests, i.label))}
               >
                 <span className="ob-icon">{i.icon}</span>
                 <div className="ob-lbl">{i.label}</div>
@@ -225,9 +231,9 @@ export default function OnboardingPage() {
           <div>
             {OFFERINGS.map(o => (
               <div
-                key={o.id}
-                className={`ob-option${offerings.includes(o.id) ? ' sel' : ''}`}
-                onClick={() => setOfferings(toggleArr(offerings, o.id))}
+                key={o.label}
+                className={`ob-option${offerings.includes(o.label) ? ' sel' : ''}`}
+                onClick={() => setOfferings(toggleArr(offerings, o.label))}
               >
                 <span className="ob-icon">{o.icon}</span>
                 <div className="ob-lbl">{o.label}</div>

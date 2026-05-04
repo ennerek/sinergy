@@ -30,7 +30,7 @@ export default function HomeClient({ profile, matches, synergiesCount, project, 
   const groupName = (profile?.user_groups?.[0] as any)?.groups?.name || 'Red Synergy';
   const groupIcon = (profile?.user_groups?.[0] as any)?.groups?.icon || '★';
 
-  const matchesCount = pulse?.matches_count ?? matches.length;
+  const matchesCount = matches.length || pulse?.matches_count || 0;
   const openCount = pulse?.open_requests ?? 0;
   const netCount = pulse?.network_count ?? networkCount;
 
@@ -156,7 +156,7 @@ export default function HomeClient({ profile, matches, synergiesCount, project, 
           open
           onClose={() => setContactTarget(null)}
           target={contactTarget.other}
-          matchId={contactTarget.match?.id}
+          matchId={contactTarget.match?.id ?? undefined}
         />
       )}
       <NivelesOverlay open={nivelesOpen} onClose={() => setNivelesOpen(false)} currentLevel={profile?.access_level ?? 1} />
