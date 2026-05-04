@@ -46,14 +46,6 @@ export default function RegisterPage() {
     setSent(true);
   };
 
-  const handleGoogle = async () => {
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-  };
-
   if (sent) {
     return (
       <div style={{ background: '#14140F', minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
@@ -135,17 +127,7 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '20px 0' }}>
-          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>o</span>
-          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
-        </div>
-
-        <button className="auth-btn-google" onClick={handleGoogle} type="button">
-          <span>🔵</span> Continuar con Google
-        </button>
-
-        <div style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
+        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
           ¿Ya tienes cuenta?{' '}
           <Link href="/auth/login" style={{ color: '#E5CE82', textDecoration: 'none', fontWeight: 600 }}>Entrar</Link>
         </div>
