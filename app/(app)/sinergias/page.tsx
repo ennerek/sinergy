@@ -41,6 +41,8 @@ export default function SinergiasPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     await supabase.from('synergies').insert({ user_id: user.id, type: tab, description: text, categories: cats, budget_range: budget });
+    // Recalculate synergy-based matches for this user
+    await fetch('/api/matches', { method: 'POST' });
     setText(''); setCats([]); setBudget('');
     await loadAll();
     setLoading(false);

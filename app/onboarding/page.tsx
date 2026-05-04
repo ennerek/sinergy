@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
@@ -48,12 +48,53 @@ type Step = 'splash' | 0 | 1 | 2 | 3 | 4 | 'result';
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>('splash');
+  const [checkingAccess, setCheckingAccess] = useState(true);
   const [name, setName] = useState('');
   const [groups, setGroups] = useState<string[]>([]);
   const [sector, setSector] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [offerings, setOfferings] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.replace('/auth/login');
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, sector, synergy_interests, offerings, onboarding_completed, onboarding_answers')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile?.onboarding_completed) {
+        router.replace('/home');
+        return;
+      }
+
+      const answers = profile?.onboarding_answers as {
+        name?: string;
+        groups?: string[];
+        sector?: string;
+        interests?: string[];
+        offerings?: string[];
+      } | null;
+
+      setName(profile?.full_name || answers?.name || '');
+      setGroups(Array.isArray(answers?.groups) ? answers.groups : []);
+      setSector(profile?.sector || answers?.sector || '');
+      setInterests(profile?.synergy_interests ?? answers?.interests ?? []);
+      setOfferings(profile?.offerings ?? answers?.offerings ?? []);
+      setCheckingAccess(false);
+    };
+
+    void checkOnboardingStatus();
+  }, [router]);
 
   const toggleArr = (arr: string[], val: string): string[] =>
     arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val];
@@ -64,29 +105,54 @@ export default function OnboardingPage() {
     setSaving(true);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push('/auth/login'); return; }
+    if (!user) {
+      setSaving(false);
+      router.push('/auth/login');
+      return;
+    }
 
-    // Update profile
-    await supabase.from('profiles').update({
+    const { error: profileError } = await supabase.from('profiles').upsert({
+      id: user.id,
       full_name: name,
       synergy_interests: interests,
-      offerings: offerings,
-      sector: sector,
+      offerings,
+      sector,
       onboarding_completed: true,
       onboarding_answers: { name, groups, sector, interests, offerings },
-    }).eq('id', user.id);
+      updated_at: new Date().toISOString(),
+    }, {
+      onConflict: 'id',
+    });
 
-    // Insert user_groups
+    if (profileError) {
+      setSaving(false);
+      return;
+    }
+
     const { data: groupsData } = await supabase.from('groups').select('id,slug').in('slug', groups);
     if (groupsData?.length) {
-      await supabase.from('user_groups').upsert(
+      const { error: groupsError } = await supabase.from('user_groups').upsert(
         groupsData.map(g => ({ user_id: user.id, group_id: g.id, is_direct: true })),
         { onConflict: 'user_id,group_id' }
       );
+
+      if (groupsError) {
+        setSaving(false);
+        return;
+      }
     }
 
-    router.push('/home');
+    router.replace('/home');
   };
+
+  if (checkingAccess) {
+    return (
+      <div style={{ background: 'linear-gradient(180deg, #1A4731 0%, #0F3624 100%)', minHeight: '100dvh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: 28, textAlign: 'center' }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: '2px solid rgba(229,206,130,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: '1.8rem', color: '#E5CE82', marginBottom: 24 }}>S</div>
+        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.15em', color: 'rgba(229,206,130,0.8)' }}>CARGANDO TU PERFIL</div>
+      </div>
+    );
+  }
 
   if (step === 'splash') {
     return (

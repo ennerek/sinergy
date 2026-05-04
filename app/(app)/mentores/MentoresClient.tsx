@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import ChatOverlay from '@/components/overlays/ChatOverlay';
 
@@ -16,19 +16,31 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [localReflections, setLocalReflections] = useState(reflections);
+  const [loadingReflections, setLoadingReflections] = useState(reflections.length === 0);
+  const [tab, setTab] = useState<'all' | 'mine'>('all');
+
+  const loadReflections = useCallback(async () => {
+    const supabase = createClient();
+    const query = supabase
+      .from('reflections')
+      .select('*, profiles(full_name, sector, avatar_url), reflection_replies(id)')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(30);
+    const { data } = await query;
+    setLocalReflections(data ?? []);
+    setLoadingReflections(false);
+  }, []);
+
+  useEffect(() => { loadReflections(); }, [loadReflections]);
 
   const publish = async () => {
     if (!text.trim() || sending) return;
     setSending(true);
     const supabase = createClient();
     await supabase.from('reflections').insert({ user_id: currentUserId, content: text });
-    const { data } = await supabase
-      .from('reflections')
-      .select('*, profiles(full_name, sector), reflection_replies(id)')
-      .order('created_at', { ascending: false })
-      .limit(20);
-    setLocalReflections(data ?? []);
     setText('');
+    await loadReflections();
     setSending(false);
   };
 
@@ -60,27 +72,52 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
         </div>
 
         {/* Reflections list */}
-        <div className="slbl">Reflexiones de la red</div>
-        {localReflections.map(r => {
-          const initials = (r.profiles?.full_name || 'A').split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase();
-          const firstName = r.profiles?.full_name?.split(' ')[0] || 'Anónimo';
-          const daysAgo = Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000);
-          return (
-            <div key={r.id} className="thread">
-              <div className="thread-hd">
-                <div className="thread-av">{initials}</div>
-                <div>
-                  <div className="thread-name">{firstName} · <em style={{ fontStyle: 'normal', color: 'var(--mut)' }}>{r.profiles?.sector || 'Empresario'}</em></div>
-                  <div className="thread-meta">hace {daysAgo === 0 ? 'hoy' : `${daysAgo} día${daysAgo !== 1 ? 's' : ''}`}</div>
-                </div>
+        <div className="bo-tabs" style={{ marginTop: 8 }}>
+          <button className={`bo-tab${tab === 'all' ? ' on' : ''}`} onClick={() => setTab('all')}>🌐 Red</button>
+          <button className={`bo-tab${tab === 'mine' ? ' on' : ''}`} onClick={() => setTab('mine')}>✍️ Mis reflexiones</button>
+        </div>
+        {loadingReflections ? (
+          <div style={{ padding: '16px 0', color: 'var(--mut)', fontSize: 13, textAlign: 'center' }}>Cargando reflexiones…</div>
+        ) : (() => {
+          const visible = tab === 'mine'
+            ? localReflections.filter(r => r.user_id === currentUserId)
+            : localReflections;
+          if (visible.length === 0) {
+            return (
+              <div style={{ padding: '16px 0', color: 'var(--mut)', fontSize: 13, textAlign: 'center' }}>
+                {tab === 'mine' ? 'Aún no has publicado ninguna reflexión.' : 'La red aún no ha publicado reflexiones.'}
               </div>
-              <div className="thread-body">{r.content}</div>
-              {r.reflection_replies?.length > 0 && (
-                <div className="thread-foot">{r.reflection_replies.length} respuesta{r.reflection_replies.length !== 1 ? 's' : ''}</div>
-              )}
-            </div>
-          );
-        })}
+            );
+          }
+          return visible.map(r => {
+            const initials = (r.profiles?.full_name || 'A').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+            const name = r.profiles?.full_name || 'Anónimo';
+            const firstName = name.split(' ')[0];
+            const isOwn = r.user_id === currentUserId;
+            const daysAgo = Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000);
+            const timeStr = daysAgo === 0 ? 'hoy' : `hace ${daysAgo} día${daysAgo !== 1 ? 's' : ''}`;
+            return (
+              <div key={r.id} className="thread">
+                <div className="thread-hd">
+                  <div className="thread-av">{initials}</div>
+                  <div>
+                    <div className="thread-name">
+                      {isOwn ? 'Tú' : firstName}
+                      {!isOwn && r.profiles?.sector && (
+                        <em style={{ fontStyle: 'normal', color: 'var(--mut)' }}> · {r.profiles.sector}</em>
+                      )}
+                    </div>
+                    <div className="thread-meta">{timeStr}</div>
+                  </div>
+                </div>
+                <div className="thread-body">{r.content}</div>
+                {r.reflection_replies?.length > 0 && (
+                  <div className="thread-foot">{r.reflection_replies.length} respuesta{r.reflection_replies.length !== 1 ? 's' : ''}</div>
+                )}
+              </div>
+            );
+          });
+        })()}
 
         {/* Mentors grid */}
         {mentors.length > 0 && (

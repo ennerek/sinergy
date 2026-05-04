@@ -9,11 +9,21 @@ export default async function HomePage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [profileRes, othersRes, synergiesRes, projectRes] = await Promise.all([
+  const [profileRes, synergiesRes, projectRes, matchesRes] = await Promise.all([
     supabase.from('profiles').select('*, user_groups(group_id, groups(name,icon,slug))').eq('id', user!.id).single(),
-    supabase.from('profiles').select('id, full_name, company_name, sector, access_level, synergy_interests, offerings').neq('id', user!.id),
     supabase.from('synergies').select('id').eq('user_id', user!.id).eq('is_active', true),
     supabase.from('ngo_projects').select('*').eq('is_active', true).single(),
+    supabase
+      .from('matches')
+      .select(`
+        *,
+        a:profiles!matches_user_id_a_fkey(id, full_name, company_name, sector, access_level),
+        b:profiles!matches_user_id_b_fkey(id, full_name, company_name, sector, access_level)
+      `)
+      .or(`user_id_a.eq.${user!.id},user_id_b.eq.${user!.id}`)
+      .eq('status', 'pending')
+      .order('score', { ascending: false })
+      .limit(10),
   ]);
 
   const [pulseRes, networkRes] = await Promise.all([
@@ -21,10 +31,37 @@ export default async function HomePage() {
     supabase.from('connections').select('id').or(`user_id_a.eq.${user!.id},user_id_b.eq.${user!.id}`),
   ]);
 
-  const myInterests: string[] = profileRes.data?.synergy_interests ?? [];
-  const myOfferings: string[] = profileRes.data?.offerings ?? [];
+  const profile = profileRes.data;
+  const userLevel: number = profile?.access_level ?? 1;
 
-  const dynamicMatches = (othersRes.data ?? [])
+  // Synergy-based matches (from matches table)
+  const synergyMatches = (matchesRes.data ?? []).map(m => {
+    const isLocked = (m.requires_level ?? 1) > userLevel;
+    const other = m.user_id_a === user!.id ? m.a : m.b;
+    return {
+      id: m.id as string | null,
+      user_id_a: m.user_id_a,
+      user_id_b: m.user_id_b,
+      score: m.score,
+      score_reasons: isLocked ? [] : (m.score_reasons ?? []),
+      requires_level: m.requires_level ?? 1,
+      status: m.status,
+      'profiles!matches_user_id_b_fkey': m.user_id_a === user!.id ? other : null,
+      'profiles!matches_user_id_a_fkey': m.user_id_b === user!.id ? other : null,
+    };
+  });
+
+  // Profile-based fallback if no synergy matches yet
+  const myInterests: string[] = profile?.synergy_interests ?? [];
+  const myOfferings: string[] = profile?.offerings ?? [];
+  const { data: others } = synergyMatches.length
+    ? { data: [] }
+    : await supabase
+        .from('profiles')
+        .select('id, full_name, company_name, sector, access_level, synergy_interests, offerings')
+        .neq('id', user!.id);
+
+  const dynamicMatches = (others ?? [])
     .map(other => {
       const theyOfferWhatINeed = intersect(other.offerings ?? [], myInterests);
       const theyNeedWhatIOffer = intersect(other.synergy_interests ?? [], myOfferings);
@@ -49,13 +86,15 @@ export default async function HomePage() {
       'profiles!matches_user_id_a_fkey': null,
     }));
 
+  const matches = synergyMatches.length ? synergyMatches : dynamicMatches;
+
   return (
     <HomeClient
       profile={{
-        ...profileRes.data,
-        full_name: profileRes.data?.full_name || user!.user_metadata?.full_name || '',
+        ...profile,
+        full_name: profile?.full_name || user!.user_metadata?.full_name || '',
       }}
-      matches={dynamicMatches}
+      matches={matches}
       synergiesCount={synergiesRes.data?.length ?? 0}
       project={projectRes.data}
       pulse={pulseRes.data}
