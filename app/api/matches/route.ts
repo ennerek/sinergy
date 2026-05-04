@@ -35,8 +35,17 @@ function scoreText(descA: string, descB: string): number {
   const wB = tokenize(descB);
   if (!wA.size || !wB.size) return 0;
   let overlap = 0;
-  for (const w of wA) if (wB.has(w)) overlap++;
-  const union = new Set([...wA, ...wB]).size;
+  wA.forEach((w) => {
+    if (wB.has(w)) overlap++;
+  });
+  const unionWords = new Set<string>();
+  wA.forEach((w) => {
+    unionWords.add(w);
+  });
+  wB.forEach((w) => {
+    unionWords.add(w);
+  });
+  const union = unionWords.size;
   return Math.round((overlap / union) * 40);
 }
 
