@@ -33,6 +33,7 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const initials = (fullName || 'U').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
   const groupName = (profile?.user_groups?.[0] as any)?.groups?.name || 'Red Synergy';
@@ -65,8 +66,9 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
 
   const saveProfile = async () => {
     setSaving(true);
+    setSaveError('');
     const supabase = createClient();
-    await supabase.from('profiles').update({
+    const { error } = await supabase.from('profiles').update({
       full_name: fullName,
       company_name: companyName,
       role_title: roleTitle,
@@ -76,7 +78,12 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
       offerings,
     }).eq('id', profile.id);
     setSaving(false);
+    if (error) {
+      setSaveError(error.message || 'No se pudo guardar. Inténtalo de nuevo.');
+      return;
+    }
     setEditMode(false);
+    router.refresh();
   };
 
   const signOut = async () => {
@@ -235,6 +242,12 @@ export default function PerfilClient({ profile, synergiesCount, connectionsCount
           </div>
 
           <div style={{ padding: '20px 16px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {saveError && (
+              <div style={{ background: 'rgba(200,50,50,.12)', border: '1px solid rgba(200,50,50,.3)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#C03030' }}>
+                {saveError}
+              </div>
+            )}
 
             {/* Photo section */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

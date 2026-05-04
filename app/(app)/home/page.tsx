@@ -25,7 +25,10 @@ export default async function HomePage() {
 
   return (
     <HomeClient
-      profile={profileRes.data}
+      profile={{
+        ...profileRes.data,
+        full_name: profileRes.data?.full_name || user!.user_metadata?.full_name || '',
+      }}
       matches={matchesRes.data ?? []}
       synergiesCount={synergiesRes.data?.length ?? 0}
       project={projectRes.data}
