@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
   const formatSignUpError = (err: unknown) => {
     if (!err || typeof err !== 'object') return 'No se pudo crear la cuenta. Inténtalo de nuevo.';
@@ -41,7 +42,8 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push('/onboarding');
+    setLoading(false);
+    setSent(true);
   };
 
   const handleGoogle = async () => {
@@ -51,6 +53,27 @@ export default function RegisterPage() {
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   };
+
+  if (sent) {
+    return (
+      <div style={{ background: '#14140F', minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ width: '100%', maxWidth: 380, textAlign: 'center' }}>
+          <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(184,146,46,0.15)', border: '1px solid rgba(184,146,46,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, margin: '0 auto 24px' }}>✉️</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.5rem', fontWeight: 900, color: '#fff', marginBottom: 12 }}>Revisa tu correo</div>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, marginBottom: 8 }}>
+            Hemos enviado un enlace de confirmación a
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#E5CE82', marginBottom: 20 }}>{email}</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: 32 }}>
+            Haz clic en el enlace del email para activar tu cuenta y acceder al círculo. Si no lo ves, revisa la carpeta de spam.
+          </div>
+          <Link href="/auth/login" style={{ display: 'inline-block', padding: '12px 28px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 50, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>
+            Volver al inicio de sesión
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: '#14140F', minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
