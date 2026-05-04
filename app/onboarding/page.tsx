@@ -59,37 +59,44 @@ export default function OnboardingPage() {
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+          router.replace('/auth/login');
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, sector, synergy_interests, offerings, onboarding_completed, onboarding_answers')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile?.onboarding_completed) {
+          router.replace('/home');
+          return;
+        }
+
+        const answers = profile?.onboarding_answers as {
+          name?: string;
+          groups?: string[];
+          sector?: string;
+          interests?: string[];
+          offerings?: string[];
+        } | null;
+
+        setName(profile?.full_name || answers?.name || '');
+        setGroups(Array.isArray(answers?.groups) ? answers.groups : []);
+        setSector(profile?.sector || answers?.sector || '');
+        setInterests(profile?.synergy_interests ?? answers?.interests ?? []);
+        setOfferings(profile?.offerings ?? answers?.offerings ?? []);
+      } catch {
         router.replace('/auth/login');
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, sector, synergy_interests, offerings, onboarding_completed, onboarding_answers')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (profile?.onboarding_completed) {
-        router.replace('/home');
-        return;
-      }
-
-      const answers = profile?.onboarding_answers as {
-        name?: string;
-        groups?: string[];
-        sector?: string;
-        interests?: string[];
-        offerings?: string[];
-      } | null;
-
-      setName(profile?.full_name || answers?.name || '');
-      setGroups(Array.isArray(answers?.groups) ? answers.groups : []);
-      setSector(profile?.sector || answers?.sector || '');
-      setInterests(profile?.synergy_interests ?? answers?.interests ?? []);
-      setOfferings(profile?.offerings ?? answers?.offerings ?? []);
       setCheckingAccess(false);
     };
 

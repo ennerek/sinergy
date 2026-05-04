@@ -11,8 +11,9 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/auth/login');
 
-  const [profileRes, synergiesRes, projectRes, matchesRes] = await Promise.all([
-    supabase.from('profiles').select('*, user_groups(group_id, groups(name,icon,slug))').eq('id', user.id).maybeSingle(),
+  const [profileRes, userGroupsRes, synergiesRes, projectRes, matchesRes] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+    supabase.from('user_groups').select('group_id, groups(name,icon,slug)').eq('user_id', user.id),
     supabase.from('synergies').select('id').eq('user_id', user.id).eq('is_active', true),
     supabase.from('ngo_projects').select('*').eq('is_active', true).single(),
     supabase
@@ -33,7 +34,12 @@ export default async function HomePage() {
     supabase.from('connections').select('id').or(`user_id_a.eq.${user.id},user_id_b.eq.${user.id}`),
   ]);
 
-  const profile = profileRes.data;
+  const profile = profileRes.data
+    ? {
+        ...profileRes.data,
+        user_groups: userGroupsRes.data ?? [],
+      }
+    : null;
   if (!profile?.onboarding_completed) redirect('/onboarding');
   const userLevel: number = profile?.access_level ?? 1;
 

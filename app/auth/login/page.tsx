@@ -34,6 +34,15 @@ export default function LoginPage() {
       .eq('id', user.id)
       .maybeSingle();
 
+    if (!profile) {
+      await supabase.from('profiles').upsert({
+        id: user.id,
+        full_name: user.user_metadata?.full_name || '',
+        lang: (user.user_metadata?.lang === 'en' ? 'en' : 'es'),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+    }
+
     router.refresh();
     router.push(profile?.onboarding_completed ? '/home' : '/onboarding');
   };
