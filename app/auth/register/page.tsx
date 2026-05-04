@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/client';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [nombre, setNombre] = useState('');
+  const [apellidos, setApellidos] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -32,7 +34,7 @@ export default function RegisterPage() {
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback`, data: { lang: 'es' } },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback`, data: { lang: 'es', full_name: `${nombre.trim()} ${apellidos.trim()}` } },
     });
 
     if (signUpError) {
@@ -79,6 +81,32 @@ export default function RegisterPage() {
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.09em', color: 'rgba(255,255,255,0.45)', marginBottom: 6 }}>NOMBRE</div>
+              <input
+                className="auth-input"
+                type="text"
+                placeholder="Tu nombre"
+                value={nombre}
+                onChange={e => setNombre(e.target.value)}
+                required
+                autoComplete="given-name"
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.09em', color: 'rgba(255,255,255,0.45)', marginBottom: 6 }}>APELLIDOS</div>
+              <input
+                className="auth-input"
+                type="text"
+                placeholder="Tus apellidos"
+                value={apellidos}
+                onChange={e => setApellidos(e.target.value)}
+                required
+                autoComplete="family-name"
+              />
+            </div>
+          </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.09em', color: 'rgba(255,255,255,0.45)', marginBottom: 6 }}>EMAIL</div>
             <input
