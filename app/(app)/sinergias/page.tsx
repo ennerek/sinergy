@@ -13,13 +13,22 @@ export default function SinergiasPage() {
   const [cats, setCats] = useState<string[]>([]);
   const [budget, setBudget] = useState('');
   const [synergies, setSynergies] = useState<any[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { loadSynergies(); }, []);
+  useEffect(() => { loadAll(); }, []);
 
-  const loadSynergies = async () => {
+  const loadAll = async () => {
     const supabase = createClient();
-    const { data } = await supabase.from('synergies').select('*').eq('is_active', true).order('created_at', { ascending: false });
+    const [{ data: { user } }, { data }] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase
+        .from('synergies')
+        .select('*, profiles(full_name, company_name, sector, avatar_url)')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false }),
+    ]);
+    setUserId(user?.id ?? null);
     setSynergies(data ?? []);
   };
 
@@ -33,14 +42,54 @@ export default function SinergiasPage() {
     if (!user) return;
     await supabase.from('synergies').insert({ user_id: user.id, type: tab, description: text, categories: cats, budget_range: budget });
     setText(''); setCats([]); setBudget('');
-    await loadSynergies();
+    await loadAll();
     setLoading(false);
   };
 
-  const mine = synergies.filter(s => s.type === tab);
+  const byTab = synergies.filter(s => s.type === tab);
+  const mine = byTab.filter(s => s.user_id === userId);
+  const others = byTab.filter(s => s.user_id !== userId);
 
   const CATS = tab === 'busco' ? CATEGORIES_BUSCO : CATEGORIES_OFREZCO;
   const isOffer = tab === 'ofrezco';
+
+  const SynergyCard = ({ s, isOwn }: { s: any; isOwn: boolean }) => {
+    const profile = s.profiles;
+    const name = profile?.full_name || 'Usuario';
+    const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+    return (
+      <div className="post-item">
+        {!isOwn && (
+          <div style={{
+            width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+            background: isOffer ? 'rgba(184,146,46,.15)' : 'rgba(26,71,49,.1)',
+            border: `1px solid ${isOffer ? 'rgba(184,146,46,.25)' : 'rgba(26,71,49,.15)'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 12, fontWeight: 700, color: isOffer ? '#A07820' : 'var(--tl)',
+          }}>
+            {profile?.avatar_url
+              ? <img src={profile.avatar_url} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} />
+              : initials
+            }
+          </div>
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {!isOwn && (
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--sft)', marginBottom: 3 }}>
+              {name}{profile?.company_name ? <span style={{ fontWeight: 400, color: 'var(--mut)' }}> · {profile.company_name}</span> : null}
+            </div>
+          )}
+          <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 }}>{s.description}</div>
+          <div className="post-mini">
+            {s.categories?.length > 0 && <span>{(s.categories as string[]).join(', ')}</span>}
+            {s.budget_range && <span>{s.budget_range}</span>}
+            {isOwn && <span><b>{s.match_count}</b> matches</span>}
+            <span>{new Date(s.created_at).toLocaleDateString('es-ES')}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="sc on" id="sc-sinergias" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -94,23 +143,23 @@ export default function SinergiasPage() {
           {loading ? 'Publicando...' : `Publicar ${tab} ✦`}
         </button>
 
-        {/* Active list */}
-        <div className="slbl">Tus {tab === 'busco' ? 'buscos' : 'ofrezcos'} activos</div>
-        {mine.map(s => (
-          <div key={s.id} className="post-item">
-            <div style={{ flex: 1 }}>
-              <b>{s.description}</b>
-              <div className="post-mini">
-                <span><b>{s.match_count}</b> matches</span>
-                <span>{new Date(s.created_at).toLocaleDateString('es-ES')}</span>
-                {s.budget_range && <span>{s.budget_range}</span>}
-              </div>
-            </div>
-          </div>
-        ))}
+        {/* My synergies */}
+        <div className="slbl">Mis {tab === 'busco' ? 'búsquedas' : 'ofertas'} activas</div>
+        {mine.map(s => <SynergyCard key={s.id} s={s} isOwn />)}
         {mine.length === 0 && (
-          <div style={{ padding: '16px 0', color: 'var(--mut)', fontSize: 13, textAlign: 'center' }}>
-            Aún no tienes {tab === 'busco' ? 'buscos' : 'ofrezcos'} activos.
+          <div style={{ padding: '12px 0 4px', color: 'var(--mut)', fontSize: 13, textAlign: 'center' }}>
+            Aún no tienes {tab === 'busco' ? 'búsquedas' : 'ofertas'} activas.
+          </div>
+        )}
+
+        {/* Others' synergies */}
+        <div className="slbl" style={{ marginTop: 18 }}>
+          {tab === 'busco' ? 'Lo que busca la red' : 'Lo que ofrece la red'}
+        </div>
+        {others.map(s => <SynergyCard key={s.id} s={s} isOwn={false} />)}
+        {others.length === 0 && (
+          <div style={{ padding: '12px 0 4px', color: 'var(--mut)', fontSize: 13, textAlign: 'center' }}>
+            Ningún otro miembro ha publicado {tab === 'busco' ? 'búsquedas' : 'ofertas'} aún.
           </div>
         )}
 
