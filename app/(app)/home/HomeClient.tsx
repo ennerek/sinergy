@@ -26,14 +26,20 @@ export default function HomeClient({ profile, matches, synergiesCount, project, 
   const [nivelesOpen, setNivelesOpen] = useState(false);
   const [requests, setRequests] = useState<any[]>(pendingRequests);
   const [expandedMsg, setExpandedMsg] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const respondRequest = async (id: string, accepted: boolean) => {
-    await fetch(`/api/connections/${id}/respond`, {
+    const res = await fetch(`/api/connections/${id}/respond`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ accepted }),
     });
+    const json = await res.json();
     setRequests(prev => prev.filter(r => r.id !== id));
+    if (accepted && json.connected) {
+      setToast('¡Conexión creada! Ya puedes verla en tu Red.');
+      setTimeout(() => setToast(null), 4000);
+    }
   };
 
   const now = new Date();
@@ -48,6 +54,17 @@ export default function HomeClient({ profile, matches, synergiesCount, project, 
 
   return (
     <div className="sc on" id="sc-home">
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
+          background: 'var(--tl)', color: '#fff', borderRadius: 12, padding: '10px 18px',
+          fontSize: 13, fontWeight: 600, zIndex: 9999, boxShadow: '0 4px 20px rgba(0,0,0,.25)',
+          whiteSpace: 'nowrap',
+        }}>
+          {toast}
+        </div>
+      )}
       {/* Header */}
       <div className="hh">
         <div className="htop">

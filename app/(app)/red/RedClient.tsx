@@ -7,6 +7,8 @@ interface Props {
   profile: any;
   userGroups: any[];
   connectionsCount: number;
+  connections: { id: string; created_at: string; other: any }[];
+  currentUserId: string;
 }
 
 const ALL_GROUPS = [
@@ -21,7 +23,7 @@ const ALL_GROUPS = [
 const TIER_LABELS = ['', 'NIVEL 1', 'NIVEL 2', '◆ VIP'];
 const TIER_CLASSES = ['', 'tier-tag-1', 'tier-tag-2', 'tier-tag-3'];
 
-export default function RedClient({ profile, userGroups, connectionsCount }: Props) {
+export default function RedClient({ profile, userGroups, connectionsCount, connections, currentUserId }: Props) {
   const [nivelesOpen, setNivelesOpen] = useState(false);
   const accessLevel = profile?.access_level ?? 1;
   const userName = profile?.full_name?.split(' ')[0] || 'Tú';
@@ -115,6 +117,50 @@ export default function RedClient({ profile, userGroups, connectionsCount }: Pro
             </div>
           );
         })}
+        <div style={{ height: 20 }} />
+      </div>
+
+      {/* ── Mis conexiones ─────────────────────────────── */}
+      <div className="pad" style={{ paddingTop: 0 }}>
+        <div className="slbl" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          Mis conexiones
+          {connectionsCount > 0 && (
+            <span style={{ background: 'var(--tl)', color: '#fff', borderRadius: 99, fontSize: 10, fontWeight: 700, padding: '1px 7px' }}>
+              {connectionsCount}
+            </span>
+          )}
+        </div>
+
+        {connections.length === 0 ? (
+          <div style={{ background: 'var(--white)', border: '1px solid var(--bdr)', borderRadius: 14, padding: '20px 16px', textAlign: 'center', color: 'var(--mut)', fontSize: 13 }}>
+            Aún no tienes conexiones. Acepta solicitudes o propone contactos desde los matches.
+          </div>
+        ) : (
+          connections.map(c => {
+            const other = c.other;
+            const name = other?.full_name || 'Usuario';
+            const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+            return (
+              <div key={c.id} style={{
+                background: 'var(--white)', border: '1px solid var(--bdr)', borderRadius: 14,
+                padding: '11px 14px', marginBottom: 8, display: 'flex', gap: 11, alignItems: 'center',
+              }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10, background: 'rgba(26,71,49,.1)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 13, fontWeight: 700, color: 'var(--tl)', flexShrink: 0,
+                }}>{initials}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--mut)' }}>{other?.company_name || other?.sector || 'Empresario'}</div>
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--mut)', whiteSpace: 'nowrap' }}>
+                  ✓ Conectado
+                </div>
+              </div>
+            );
+          })
+        )}
         <div style={{ height: 20 }} />
       </div>
 

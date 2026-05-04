@@ -35,18 +35,11 @@ function scoreText(descA: string, descB: string): number {
   const wB = tokenize(descB);
   if (!wA.size || !wB.size) return 0;
   let overlap = 0;
-  wA.forEach((w) => {
-    if (wB.has(w)) overlap++;
-  });
-  const unionWords = new Set<string>();
-  wA.forEach((w) => {
-    unionWords.add(w);
-  });
-  wB.forEach((w) => {
-    unionWords.add(w);
-  });
-  const union = unionWords.size;
-  return Math.round((overlap / union) * 40);
+  wA.forEach(w => { if (wB.has(w)) overlap++; });
+  if (overlap === 0) return 0;
+  // Use overlap / min(|A|, |B|) — rewards descriptions sharing even a few keywords
+  const minSize = Math.min(wA.size, wB.size);
+  return Math.round((overlap / minSize) * 40);
 }
 
 function calcScore(a: { categories: string[]; description: string; budget_range: string | null },
@@ -171,7 +164,7 @@ export async function POST() {
         { categories: mine.categories ?? [], description: mine.description, budget_range: mine.budget_range ?? null },
         { categories: theirs.categories ?? [], description: theirs.description, budget_range: theirs.budget_range ?? null },
       );
-      if (score < 20) continue;
+      if (score < 10) continue;
 
       const existing = bestPerUser.get(theirs.user_id);
       if (existing && existing.score >= score) continue;
@@ -229,5 +222,87 @@ export async function POST() {
     ),
   );
 
+  return NextResponse.json({ inserted: rows.length });
+}
+
+// ─── PATCH — global recalculation: recalculate every user's matches ──────────
+// Called after any user publishes a new synergy so both sides see matches.
+
+export async function PATCH() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // Load ALL active synergies for all users
+  const { data: allSynergies } = await supabase
+    .from('synergies')
+    .select('id, user_id, type, description, categories, budget_range, profiles(access_level)')
+    .eq('is_active', true);
+
+  if (!allSynergies?.length) return NextResponse.json({ inserted: 0 });
+
+  type MatchEntry = {
+    user_id_a: string; user_id_b: string;
+    synergy_id_a: string; synergy_id_b: string;
+    score: number; score_reasons: string[]; requires_level: number;
+  };
+  const bestPerPair = new Map<string, MatchEntry>();
+
+  for (let i = 0; i < allSynergies.length; i++) {
+    for (let j = i + 1; j < allSynergies.length; j++) {
+      const s1 = allSynergies[i];
+      const s2 = allSynergies[j];
+      if (s1.user_id === s2.user_id) continue;
+      // Only cross-type (busco↔ofrezco)
+      if (s1.type === s2.type) continue;
+
+      const score = calcScore(
+        { categories: s1.categories ?? [], description: s1.description, budget_range: s1.budget_range ?? null },
+        { categories: s2.categories ?? [], description: s2.description, budget_range: s2.budget_range ?? null },
+      );
+      if (score < 10) continue;
+
+      const [uid_a, uid_b] = [s1.user_id, s2.user_id].sort();
+      const pairKey = `${uid_a}|${uid_b}`;
+      const existing = bestPerPair.get(pairKey);
+      if (existing && existing.score >= score) continue;
+
+      const synA = uid_a === s1.user_id ? s1.id : s2.id;
+      const synB = uid_b === s1.user_id ? s1.id : s2.id;
+      const profA = (uid_a === s1.user_id ? (s1 as any) : (s2 as any)).profiles;
+      const profB = (uid_b === s1.user_id ? (s1 as any) : (s2 as any)).profiles;
+      const requiresLevel: number = Math.max(profA?.access_level ?? 1, profB?.access_level ?? 1);
+
+      bestPerPair.set(pairKey, {
+        user_id_a: uid_a,
+        user_id_b: uid_b,
+        synergy_id_a: synA,
+        synergy_id_b: synB,
+        score,
+        score_reasons: buildReasons(
+          { categories: s1.categories ?? [], budget_range: s1.budget_range ?? null, description: s1.description ?? '' },
+          { categories: s2.categories ?? [], budget_range: s2.budget_range ?? null, description: s2.description ?? '' },
+        ),
+        requires_level: requiresLevel,
+      });
+    }
+  }
+
+  if (!bestPerPair.size) return NextResponse.json({ inserted: 0 });
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 7 * 24 * 3600 * 1000).toISOString();
+  const rows = Array.from(bestPerPair.values()).map(m => ({
+    ...m,
+    status: 'pending',
+    generated_at: now.toISOString(),
+    expires_at: expiresAt,
+  }));
+
+  const { error } = await supabase
+    .from('matches')
+    .upsert(rows, { onConflict: 'user_id_a,user_id_b' });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ inserted: rows.length });
 }
