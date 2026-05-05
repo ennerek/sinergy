@@ -53,17 +53,17 @@ export default async function HomePage() {
   // Synergy-based matches (from matches table)
   const synergyMatches = (matchesRes.data ?? []).map(m => {
     const isLocked = (m.requires_level ?? 1) > userLevel;
-    const other = m.user_id_a === user!.id ? m.a : m.b;
+    // user_id_a is the alphabetically-first UUID; m.a = profile of user_id_a, m.b = profile of user_id_b
+    const other = m.user_id_a === user!.id ? m.b : m.a;
     return {
-      id: m.id as string | null,
+      id: m.id as string,
       user_id_a: m.user_id_a,
       user_id_b: m.user_id_b,
       score: m.score,
       score_reasons: isLocked ? [] : (m.score_reasons ?? []),
       requires_level: m.requires_level ?? 1,
       status: m.status,
-      'profiles!matches_user_id_b_fkey': m.user_id_a === user!.id ? other : null,
-      'profiles!matches_user_id_a_fkey': m.user_id_b === user!.id ? other : null,
+      other: isLocked ? { id: null, full_name: '███ ███████', company_name: '██████', sector: '██████' } : other,
     };
   });
 
@@ -98,8 +98,7 @@ export default async function HomePage() {
       ],
       requires_level: 1,
       status: 'pending' as const,
-      'profiles!matches_user_id_b_fkey': m.other,
-      'profiles!matches_user_id_a_fkey': null,
+      other: m.other,
     }));
 
   const matches = synergyMatches.length ? synergyMatches : dynamicMatches;

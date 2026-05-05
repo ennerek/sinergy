@@ -36,8 +36,17 @@ export async function POST(request: NextRequest) {
     // Mutual interest — create connection
     if (existing.from_user_id === targetUserId) {
       const [a, b] = [user.id, targetUserId].sort();
-      await supabase.from('connections').upsert({ user_id_a: a, user_id_b: b, match_id: matchId ?? null }, { onConflict: 'user_id_a,user_id_b' });
-      await supabase.from('connection_requests').update({ status: 'accepted' }).eq('id', existing.id);
+      const { error: connError } = await supabase
+        .from('connections')
+        .upsert({ user_id_a: a, user_id_b: b, request_id: existing.id }, { onConflict: 'user_id_a,user_id_b' });
+      if (connError) return NextResponse.json({ error: connError.message }, { status: 500 });
+
+      const { error: reqError } = await supabase
+        .from('connection_requests')
+        .update({ status: 'accepted' })
+        .eq('id', existing.id);
+      if (reqError) return NextResponse.json({ error: reqError.message }, { status: 500 });
+
       return NextResponse.json({ connected: true });
     }
     return NextResponse.json({ queued: true, message: 'Request already sent' });

@@ -22,8 +22,17 @@ export async function POST(
 
   if (accepted) {
     const [a, b] = [req.from_user_id, req.to_user_id].sort();
-    await supabase.from('connections').upsert({ user_id_a: a, user_id_b: b, match_id: req.match_id ?? null }, { onConflict: 'user_id_a,user_id_b' });
-    await supabase.from('connection_requests').update({ status: 'accepted' }).eq('id', params.id);
+    const { error: connError } = await supabase
+      .from('connections')
+      .upsert({ user_id_a: a, user_id_b: b, request_id: req.id }, { onConflict: 'user_id_a,user_id_b' });
+    if (connError) return NextResponse.json({ error: connError.message }, { status: 500 });
+
+    const { error: reqError } = await supabase
+      .from('connection_requests')
+      .update({ status: 'accepted', to_responded_at: new Date().toISOString() })
+      .eq('id', params.id);
+    if (reqError) return NextResponse.json({ error: reqError.message }, { status: 500 });
+
     // No rejection notification per privacy rule
     return NextResponse.json({ connected: true });
   } else {

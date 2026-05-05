@@ -37,8 +37,8 @@ export default function HomeClient({ profile, matches, synergiesCount, project, 
     const json = await res.json();
     setRequests(prev => prev.filter(r => r.id !== id));
     if (accepted && json.connected) {
-      setToast('¡Conexión creada! Ya puedes verla en tu Red.');
-      setTimeout(() => setToast(null), 4000);
+      setToast('¡Conexión creada! Redirigiendo a tu Red...');
+      setTimeout(() => router.push('/red'), 1800);
     }
   };
 
@@ -200,10 +200,8 @@ export default function HomeClient({ profile, matches, synergiesCount, project, 
         {/* Matches */}
         <div className="slbl">Matches detectados</div>
         {matches.map(match => {
-          const other = match.user_id_a === profile?.id
-            ? match['profiles!matches_user_id_b_fkey']
-            : match['profiles!matches_user_id_a_fkey'];
-          const isLocked = match.requires_level > (profile?.access_level ?? 1);
+          const other = match.other;
+          const isLocked = (match.requires_level ?? 1) > (profile?.access_level ?? 1);
           const scoreClass = match.score >= 90 ? 'high' : match.score >= 70 ? 'med' : 'low';
 
           return (
