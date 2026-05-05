@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import ChatOverlay from '@/components/overlays/ChatOverlay';
@@ -37,7 +37,6 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
   const [tab, setTab] = useState<'all' | 'mine'>('all');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Per-card state
   const [openReplies, setOpenReplies] = useState<Record<string, boolean>>({});
   const [repliesData, setRepliesData] = useState<Record<string, Reply[]>>({});
   const [replyText, setReplyText] = useState<Record<string, string>>({});
@@ -91,7 +90,7 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
   };
 
   const deleteReflection = async (id: string) => {
-    if (!confirm('¿Eliminar esta reflexión?')) return;
+    if (!confirm('Eliminar esta reflexion?')) return;
     const res = await fetch(`/api/reflections/${id}`, { method: 'DELETE' });
     if (res.ok || res.status === 204) {
       setLocalReflections(p => p.filter(r => r.id !== id));
@@ -165,7 +164,6 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
   return (
     <div className="sc on" id="sc-mentores" style={{ display: 'flex', flexDirection: 'column' }}>
       <div className="pad">
-        {/* SISI Mentor Card */}
         <div className="smc" onClick={() => setChatOpen(true)}>
           <div className="smc-av">S</div>
           <div>
@@ -175,34 +173,32 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
           <span className="match-arrow">›</span>
         </div>
 
-        {/* Error message */}
         {errorMsg && (
           <div style={{ background: '#fee', border: '1px solid #fcc', borderRadius: 8, padding: '8px 12px', marginBottom: 8, fontSize: 12, color: '#c00' }}>
             {errorMsg}
           </div>
         )}
 
-        {/* Post reflection */}
         <div className="thread-composer">
           <textarea
-            placeholder="Comparte un aprendizaje, dilema o reflexión con la red..."
+            placeholder="Comparte un aprendizaje, dilema o reflexion con la red..."
             value={text}
             onChange={e => setText(e.target.value)}
             maxLength={280}
             style={{ width: '100%', border: 'none', background: 'transparent', resize: 'none', outline: 'none', fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'var(--ink)', minHeight: 64, lineHeight: 1.5 }}
           />
           <button className="post-btn" onClick={publish} disabled={sending || !text.trim()}>
-            {sending ? 'Publicando...' : 'Publicar reflexión'}
+            {sending ? 'Publicando...' : 'Publicar reflexion'}
           </button>
         </div>
 
-        {/* Reflections list */}
         <div className="bo-tabs" style={{ marginTop: 8 }}>
-          <button className={`bo-tab${tab === 'all' ? ' on' : ''}`} onClick={() => setTab('all')}>🌐 Red</button>
-          <button className={`bo-tab${tab === 'mine' ? ' on' : ''}`} onClick={() => setTab('mine')}>✍️ Mis reflexiones</button>
+          <button className={`bo-tab${tab === 'all' ? ' on' : ''}`} onClick={() => setTab('all')}>Red</button>
+          <button className={`bo-tab${tab === 'mine' ? ' on' : ''}`} onClick={() => setTab('mine')}>Mis reflexiones</button>
         </div>
+
         {loadingReflections ? (
-          <div style={{ padding: '16px 0', color: 'var(--mut)', fontSize: 13, textAlign: 'center' }}>Cargando reflexiones…</div>
+          <div style={{ padding: '16px 0', color: 'var(--mut)', fontSize: 13, textAlign: 'center' }}>Cargando reflexiones...</div>
         ) : (() => {
           const visible = tab === 'mine'
             ? localReflections.filter(r => r.user_id === currentUserId)
@@ -210,17 +206,17 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
           if (visible.length === 0) {
             return (
               <div style={{ padding: '16px 0', color: 'var(--mut)', fontSize: 13, textAlign: 'center' }}>
-                {tab === 'mine' ? 'Aún no has publicado ninguna reflexión.' : 'La red aún no ha publicado reflexiones.'}
+                {tab === 'mine' ? 'Aun no has publicado ninguna reflexion.' : 'La red aun no ha publicado reflexiones.'}
               </div>
             );
           }
           return visible.map(r => {
             const initials = (r.profiles?.full_name || 'A').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
-            const name = r.profiles?.full_name || 'Anónimo';
+            const name = r.profiles?.full_name || 'Anonimo';
             const firstName = name.split(' ')[0];
             const isOwn = r.user_id === currentUserId;
             const daysAgo = Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000);
-            const timeStr = daysAgo === 0 ? 'hoy' : `hace ${daysAgo} día${daysAgo !== 1 ? 's' : ''}`;
+            const timeStr = daysAgo === 0 ? 'hoy' : `hace ${daysAgo} dia${daysAgo !== 1 ? 's' : ''}`;
             const replyCount = r.reflection_replies?.length ?? 0;
             const isSaved = savedIds.has(r.id);
             const repliesOpen = openReplies[r.id];
@@ -231,7 +227,7 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
                   <div className="thread-av">{initials}</div>
                   <div style={{ flex: 1 }}>
                     <div className="thread-name">
-                      {isOwn ? 'Tú' : firstName}
+                      {isOwn ? 'Tu' : firstName}
                       {!isOwn && r.profiles?.sector && (
                         <em style={{ fontStyle: 'normal', color: 'var(--mut)' }}> · {r.profiles.sector}</em>
                       )}
@@ -240,16 +236,8 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
                   </div>
                   {isOwn && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <button
-                        onClick={() => editingId === r.id ? setEditingId(null) : startEdit(r)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--mut)', padding: '2px 4px' }}
-                        title="Editar"
-                      >✏️</button>
-                      <button
-                        onClick={() => deleteReflection(r.id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--mut)', padding: '2px 4px' }}
-                        title="Eliminar"
-                      >🗑️</button>
+                      <button onClick={() => editingId === r.id ? setEditingId(null) : startEdit(r)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--mut)', padding: '2px 4px' }} title="Editar">edit</button>
+                      <button onClick={() => deleteReflection(r.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--mut)', padding: '2px 4px' }} title="Eliminar">del</button>
                     </div>
                   )}
                 </div>
@@ -271,35 +259,26 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
                   <div className="thread-body">{r.content}</div>
                 )}
 
-                {/* Action bar */}
                 <div style={{ display: 'flex', gap: 12, marginTop: 8, alignItems: 'center' }}>
-                  <button
-                    onClick={() => toggleReplies(r.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: repliesOpen ? 'var(--accent)' : 'var(--mut)', display: 'flex', alignItems: 'center', gap: 4, padding: 0 }}
-                  >
-                    💬 {replyCount > 0 ? replyCount : 'Responder'}
+                  <button onClick={() => toggleReplies(r.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: repliesOpen ? 'var(--accent)' : 'var(--mut)', display: 'flex', alignItems: 'center', gap: 4, padding: 0 }}>
+                    Responder {replyCount > 0 ? `(${replyCount})` : ''}
                   </button>
-                  <button
-                    onClick={() => toggleSave(r.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: isSaved ? 'var(--accent)' : 'var(--mut)', padding: 0 }}
-                    title={isSaved ? 'Guardado' : 'Guardar'}
-                  >
-                    {isSaved ? '🔖 Guardado' : '🔖 Guardar'}
+                  <button onClick={() => toggleSave(r.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: isSaved ? 'var(--accent)' : 'var(--mut)', padding: 0 }}>
+                    {isSaved ? 'Guardado' : 'Guardar'}
                   </button>
                 </div>
 
-                {/* Replies panel */}
                 {repliesOpen && (
                   <div style={{ marginTop: 8, paddingLeft: 12, borderLeft: '2px solid var(--br)' }}>
                     {(repliesData[r.id] ?? []).map(rep => {
-                      const repName = rep.profiles?.full_name || 'Anónimo';
+                      const repName = rep.profiles?.full_name || 'Anonimo';
                       const repInitials = repName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
                       const repDays = Math.floor((Date.now() - new Date(rep.created_at).getTime()) / 86400000);
                       return (
                         <div key={rep.id} style={{ marginBottom: 8 }}>
                           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                             <div style={{ width: 24, height: 24, borderRadius: 8, background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{repInitials}</div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{rep.user_id === currentUserId ? 'Tú' : repName.split(' ')[0]}</div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{rep.user_id === currentUserId ? 'Tu' : repName.split(' ')[0]}</div>
                             <div style={{ fontSize: 11, color: 'var(--mut)' }}>{repDays === 0 ? 'hoy' : `hace ${repDays}d`}</div>
                           </div>
                           <div style={{ fontSize: 13, color: 'var(--ink)', marginTop: 2, paddingLeft: 32 }}>{rep.content}</div>
@@ -321,7 +300,7 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
                         disabled={!replyText[r.id]?.trim() || sendingReply[r.id]}
                         style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 20, padding: '6px 14px', fontSize: 12, cursor: 'pointer', opacity: (!replyText[r.id]?.trim() || sendingReply[r.id]) ? 0.5 : 1 }}
                       >
-                        {sendingReply[r.id] ? '…' : 'Enviar'}
+                        {sendingReply[r.id] ? '...' : 'Enviar'}
                       </button>
                     </div>
                   </div>
@@ -331,175 +310,12 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
           });
         })()}
 
-        {/* Mentors grid */}
         {mentors.length > 0 && (
           <>
             <div className="slbl" style={{ marginTop: 8 }}>Mentores disponibles</div>
             <div className="mentor-list">
               {mentors.map(m => {
-                const initials = (m.full_name || 'M').split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase();
-                return (
-                  <div key={m.id} className="mentor-card">
-                    <div className="mc-av">{initials}</div>
-                    <div className="mc-name">{m.full_name?.split(' ')[0]}</div>
-                    <div className="mc-role">{m.sector || 'Mentor'}</div>
-                    <div className="mc-stat">LV{m.access_level}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        <div style={{ height: 20 }} />
-      </div>
-
-      <ChatOverlay open={chatOpen} onClose={() => setChatOpen(false)} profile={profile} />
-    </div>
-  );
-}
-
-  const [chatOpen, setChatOpen] = useState(false);
-  const [text, setText] = useState('');
-  const [sending, setSending] = useState(false);
-  const [localReflections, setLocalReflections] = useState(reflections);
-  const [loadingReflections, setLoadingReflections] = useState(reflections.length === 0);
-  const [tab, setTab] = useState<'all' | 'mine'>('all');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const loadReflections = useCallback(async () => {
-    try {
-      const res = await fetch('/api/reflections');
-      if (res.ok) {
-        const data = await res.json();
-        setLocalReflections(data);
-      } else {
-        const body = await res.text();
-        setErrorMsg(`Error cargando reflexiones: ${res.status} ${body}`);
-      }
-    } catch (e: any) {
-      setErrorMsg(`Error de red: ${e?.message ?? e}`);
-    }
-    setLoadingReflections(false);
-  }, []);
-
-  useEffect(() => { loadReflections(); }, [loadReflections]);
-
-  const publish = async () => {
-    if (!text.trim() || sending) return;
-    setErrorMsg(null);
-    setSending(true);
-    try {
-      const res = await fetch('/api/reflections', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: text }),
-      });
-      if (!res.ok) {
-        const body = await res.text();
-        setErrorMsg(`Error al publicar: ${res.status} ${body}`);
-        setSending(false);
-        return;
-      }
-    } catch (e: any) {
-      setErrorMsg(`Error de red al publicar: ${e?.message ?? e}`);
-      setSending(false);
-      return;
-    }
-    setText('');
-    await loadReflections();
-    setSending(false);
-  };
-
-  return (
-    <div className="sc on" id="sc-mentores" style={{ display: 'flex', flexDirection: 'column' }}>
-      <div className="pad">
-        {/* SISI Mentor Card */}
-        <div className="smc" onClick={() => setChatOpen(true)}>
-          <div className="smc-av">S</div>
-          <div>
-            <div className="smc-n">SISI · Asistente IA</div>
-            <div className="smc-s">Tu mentora personalizada 24/7</div>
-          </div>
-          <span className="match-arrow">›</span>
-        </div>
-
-        {/* Error message */}
-        {errorMsg && (
-          <div style={{ background: '#fee', border: '1px solid #fcc', borderRadius: 8, padding: '8px 12px', marginBottom: 8, fontSize: 12, color: '#c00' }}>
-            {errorMsg}
-          </div>
-        )}
-
-        {/* Post reflection */}
-        <div className="thread-composer">
-          <textarea
-            placeholder="Comparte un aprendizaje, dilema o reflexión con la red..."
-            value={text}
-            onChange={e => setText(e.target.value)}
-            maxLength={280}
-            style={{ width: '100%', border: 'none', background: 'transparent', resize: 'none', outline: 'none', fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'var(--ink)', minHeight: 64, lineHeight: 1.5 }}
-          />
-          <button className="post-btn" onClick={publish} disabled={sending || !text.trim()}>
-            {sending ? 'Publicando...' : 'Publicar reflexión'}
-          </button>
-        </div>
-
-        {/* Reflections list */}
-        <div className="bo-tabs" style={{ marginTop: 8 }}>
-          <button className={`bo-tab${tab === 'all' ? ' on' : ''}`} onClick={() => setTab('all')}>🌐 Red</button>
-          <button className={`bo-tab${tab === 'mine' ? ' on' : ''}`} onClick={() => setTab('mine')}>✍️ Mis reflexiones</button>
-        </div>
-        {loadingReflections ? (
-          <div style={{ padding: '16px 0', color: 'var(--mut)', fontSize: 13, textAlign: 'center' }}>Cargando reflexiones…</div>
-        ) : (() => {
-          const visible = tab === 'mine'
-            ? localReflections.filter(r => r.user_id === currentUserId)
-            : localReflections;
-          if (visible.length === 0) {
-            return (
-              <div style={{ padding: '16px 0', color: 'var(--mut)', fontSize: 13, textAlign: 'center' }}>
-                {tab === 'mine' ? 'Aún no has publicado ninguna reflexión.' : 'La red aún no ha publicado reflexiones.'}
-              </div>
-            );
-          }
-          return visible.map(r => {
-            const initials = (r.profiles?.full_name || 'A').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
-            const name = r.profiles?.full_name || 'Anónimo';
-            const firstName = name.split(' ')[0];
-            const isOwn = r.user_id === currentUserId;
-            const daysAgo = Math.floor((Date.now() - new Date(r.created_at).getTime()) / 86400000);
-            const timeStr = daysAgo === 0 ? 'hoy' : `hace ${daysAgo} día${daysAgo !== 1 ? 's' : ''}`;
-            return (
-              <div key={r.id} className="thread">
-                <div className="thread-hd">
-                  <div className="thread-av">{initials}</div>
-                  <div>
-                    <div className="thread-name">
-                      {isOwn ? 'Tú' : firstName}
-                      {!isOwn && r.profiles?.sector && (
-                        <em style={{ fontStyle: 'normal', color: 'var(--mut)' }}> · {r.profiles.sector}</em>
-                      )}
-                    </div>
-                    <div className="thread-meta">{timeStr}</div>
-                  </div>
-                </div>
-                <div className="thread-body">{r.content}</div>
-                {r.reflection_replies?.length > 0 && (
-                  <div className="thread-foot">{r.reflection_replies.length} respuesta{r.reflection_replies.length !== 1 ? 's' : ''}</div>
-                )}
-              </div>
-            );
-          });
-        })()}
-
-        {/* Mentors grid */}
-        {mentors.length > 0 && (
-          <>
-            <div className="slbl" style={{ marginTop: 8 }}>Mentores disponibles</div>
-            <div className="mentor-list">
-              {mentors.map(m => {
-                const initials = (m.full_name || 'M').split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase();
+                const initials = (m.full_name || 'M').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
                 return (
                   <div key={m.id} className="mentor-card">
                     <div className="mc-av">{initials}</div>
