@@ -8,7 +8,7 @@ export default async function MentoresPage() {
   const [reflectionsRes, mentorsRes, profileRes] = await Promise.all([
     supabase
       .from('reflections')
-      .select('*, profiles(full_name, sector), reflection_replies(id)')
+      .select('*, profiles!reflections_user_id_fkey(full_name, sector), reflection_replies(id)')
       .order('created_at', { ascending: false })
       .limit(20),
     supabase
