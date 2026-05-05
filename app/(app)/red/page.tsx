@@ -5,7 +5,7 @@ export default async function RedPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [profileRes, userGroupsRes, connectionsRes, reflectionsRes] = await Promise.all([
+  const [profileRes, userGroupsRes, connectionsRes] = await Promise.all([
     supabase.from('profiles').select('full_name, access_level').eq('id', user!.id).single(),
     supabase
       .from('user_groups')
@@ -16,12 +16,6 @@ export default async function RedPage() {
       .select('id, created_at, user_id_a, user_id_b')
       .or(`user_id_a.eq.${user!.id},user_id_b.eq.${user!.id}`)
       .order('created_at', { ascending: false }),
-    supabase
-      .from('reflections')
-      .select('id, user_id, content, reply_count, save_count, created_at, profiles(full_name, sector)')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(30),
   ]);
 
   // Resolve the "other" profile for each connection in a second query
@@ -51,7 +45,6 @@ export default async function RedPage() {
       connectionsCount={connections.length}
       connections={connections}
       currentUserId={user!.id}
-      reflections={reflectionsRes.data ?? []}
     />
   );
 }

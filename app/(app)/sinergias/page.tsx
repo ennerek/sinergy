@@ -28,7 +28,7 @@ export default function SinergiasPage() {
       supabase.auth.getUser(),
       supabase
         .from('synergies')
-        .select('*, profiles(full_name, company_name, sector, avatar_url)')
+        .select('*, profiles(id, full_name, company_name, sector, avatar_url)')
         .eq('is_active', true)
         .order('created_at', { ascending: false }),
     ]);
@@ -71,6 +71,8 @@ export default function SinergiasPage() {
     const profile = s.profiles;
     const name = profile?.full_name || 'Usuario';
     const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+    // Guard: never show contact button for own synergies
+    const canContact = !isOwn && profile?.id && profile.id !== userId;
     return (
       <div className="post-item">
         {!isOwn && (
@@ -100,6 +102,14 @@ export default function SinergiasPage() {
             {isOwn && <span><b>{s.match_count}</b> matches</span>}
             <span>{new Date(s.created_at).toLocaleDateString('es-ES')}</span>
           </div>
+          {canContact && (
+            <button
+              onClick={() => setContactTarget({ ...profile, _synergyDescription: s.description })}
+              style={{ marginTop: 8, width: '100%', background: isOffer ? 'rgba(184,146,46,.1)' : 'rgba(26,71,49,.08)', color: isOffer ? '#A07820' : 'var(--tl)', border: 'none', borderRadius: 9, padding: '7px 0', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+            >
+              Proponer sinergia →
+            </button>
+          )}
         </div>
       </div>
     );

@@ -10,7 +10,10 @@ interface Props {
 }
 
 export default function ContactOverlay({ open, onClose, target, matchId }: Props) {
-  const defaultMsg = `Hola ${target?.full_name?.split(' ')[0] || ''},\n\nHe visto que podríamos tener una sinergia interesante. ¿Te parece si lo exploramos con una llamada de 30 minutos?`;
+  const synergyCtx = target?._synergyDescription
+    ? `\n\nHe visto tu publicación: "${target._synergyDescription.slice(0, 120)}${target._synergyDescription.length > 120 ? '…' : ''}" y creo que podríamos colaborar.`
+    : '\n\nHe visto que podríamos tener una sinergia interesante.';
+  const defaultMsg = `Hola ${target?.full_name?.split(' ')[0] || ''},${synergyCtx} ¿Te parece si lo exploramos con una llamada de 30 minutos?`;
   const [message, setMessage] = useState(defaultMsg);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
