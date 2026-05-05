@@ -18,9 +18,6 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  if (error) console.error('[reflections GET] Supabase error:', error);
-  console.log('[reflections GET] rows returned:', data?.length ?? 0, 'user:', user.id);
-
   return NextResponse.json(data ?? []);
 }
 
@@ -32,17 +29,6 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const content = body?.content;
   if (!content?.trim()) return NextResponse.json({ error: 'content required' }, { status: 400 });
-
-  // Verify profile exists (reflections.user_id FK → profiles.id)
-  const { data: profile, error: profileErr } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('id', user.id)
-    .single();
-  if (profileErr || !profile) {
-    console.error('[reflections POST] profile not found for user:', user.id, profileErr?.message);
-    return NextResponse.json({ error: `profile not found: ${profileErr?.message ?? 'no row'}` }, { status: 400 });
-  }
 
   const { data, error } = await supabase
     .from('reflections')
