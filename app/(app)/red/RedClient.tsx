@@ -2,6 +2,17 @@
 
 import { useState } from 'react';
 import NivelesOverlay from '@/components/overlays/NivelesOverlay';
+import ContactOverlay from '@/components/overlays/ContactOverlay';
+
+interface Reflection {
+  id: string;
+  user_id: string;
+  content: string;
+  reply_count: number;
+  save_count: number;
+  created_at: string;
+  profiles: { full_name: string | null; sector: string | null } | { full_name: string | null; sector: string | null }[] | null;
+}
 
 interface Props {
   profile: any;
@@ -9,6 +20,7 @@ interface Props {
   connectionsCount: number;
   connections: { id: string; created_at: string; other: any }[];
   currentUserId: string;
+  reflections: Reflection[];
 }
 
 const ALL_GROUPS = [
@@ -23,8 +35,31 @@ const ALL_GROUPS = [
 const TIER_LABELS = ['', 'NIVEL 1', 'NIVEL 2', '◆ VIP'];
 const TIER_CLASSES = ['', 'tier-tag-1', 'tier-tag-2', 'tier-tag-3'];
 
-export default function RedClient({ profile, userGroups, connectionsCount, connections, currentUserId }: Props) {
+export default function RedClient({ profile, userGroups, connectionsCount, connections, currentUserId, reflections: initialReflections }: Props) {
   const [nivelesOpen, setNivelesOpen] = useState(false);
+  const [contactTarget, setContactTarget] = useState<any>(null);
+  const [reflections, setReflections] = useState<Reflection[]>(initialReflections);
+  const [reflText, setReflText] = useState('');
+  const [reflPosting, setReflPosting] = useState(false);
+
+  const postReflection = async () => {
+    if (!reflText.trim() || reflPosting) return;
+    setReflPosting(true);
+    try {
+      const res = await fetch('/api/reflections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: reflText.trim() }),
+      });
+      if (res.ok) {
+        const newRef = await res.json();
+        setReflections(prev => [{ ...newRef, profiles: { full_name: profile?.full_name ?? null, sector: null } }, ...prev]);
+        setReflText('');
+      }
+    } finally {
+      setReflPosting(false);
+    }
+  };
   const accessLevel = profile?.access_level ?? 1;
   const userName = profile?.full_name?.split(' ')[0] || 'Tú';
 
@@ -154,9 +189,12 @@ export default function RedClient({ profile, userGroups, connectionsCount, conne
                   <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{name}</div>
                   <div style={{ fontSize: 11, color: 'var(--mut)' }}>{other?.company_name || other?.sector || 'Empresario'}</div>
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--mut)', whiteSpace: 'nowrap' }}>
-                  ✓ Conectado
-                </div>
+                <button
+                  onClick={() => setContactTarget(other)}
+                  style={{ fontSize: 11, fontWeight: 700, color: 'var(--tl)', background: 'rgba(26,71,49,.08)', border: 'none', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  Contactar
+                </button>
               </div>
             );
           })
@@ -164,7 +202,75 @@ export default function RedClient({ profile, userGroups, connectionsCount, conne
         <div style={{ height: 20 }} />
       </div>
 
+      {/* ── Reflexiones de la red ────────────────────────────────── */}
+      <div className="pad" style={{ paddingTop: 0 }}>
+        <div className="slbl">Reflexiones de la red</div>
+
+        {/* Post form */}
+        <div style={{ background: 'var(--white)', border: '1px solid var(--bdr)', borderRadius: 14, padding: '11px 14px', marginBottom: 12 }}>
+          <textarea
+            value={reflText}
+            onChange={e => setReflText(e.target.value.slice(0, 280))}
+            placeholder="Comparte una reflexión con la red…"
+            rows={2}
+            style={{ width: '100%', fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'var(--ink)', border: 'none', outline: 'none', resize: 'none', lineHeight: 1.6, background: 'transparent' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+            <span style={{ fontSize: 10, color: 'var(--mut)' }}>{reflText.length}/280</span>
+            <button
+              className="tier-bar-btn"
+              onClick={postReflection}
+              disabled={reflPosting || !reflText.trim()}
+            >
+              {reflPosting ? 'Publicando…' : 'Publicar ✦'}
+            </button>
+          </div>
+        </div>
+
+        {reflections.length === 0 ? (
+          <div style={{ textAlign: 'center', color: 'var(--mut)', fontSize: 13, padding: '12px 0' }}>
+            Sé el primero en compartir una reflexión.
+          </div>
+        ) : (
+          reflections.map(r => {
+            const isOwn = r.user_id === currentUserId;
+            const prof = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
+            const name = prof?.full_name || 'Usuario';
+            const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+            return (
+              <div key={r.id} className="post-item" style={{ marginBottom: 8 }}>
+                <div style={{
+                  width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                  background: isOwn ? 'rgba(26,71,49,.12)' : 'rgba(184,146,46,.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontWeight: 700,
+                  color: isOwn ? 'var(--tl)' : '#A07820',
+                }}>{initials}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--mut)', marginBottom: 2 }}>
+                    {isOwn ? 'Tú' : name}
+                    {prof?.sector ? <span style={{ fontWeight: 400 }}> · {prof.sector}</span> : null}
+                    <span style={{ fontWeight: 400, marginLeft: 6 }}>{new Date(r.created_at).toLocaleDateString('es-ES')}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 }}>{r.content}</div>
+                  {(r.reply_count > 0 || r.save_count > 0) && (
+                    <div style={{ marginTop: 5, display: 'flex', gap: 10, fontSize: 11, color: 'var(--mut)' }}>
+                      {r.reply_count > 0 && <span>💬 {r.reply_count}</span>}
+                      {r.save_count > 0 && <span>🔖 {r.save_count}</span>}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div style={{ height: 24 }} />
+      </div>
+
       <NivelesOverlay open={nivelesOpen} onClose={() => setNivelesOpen(false)} currentLevel={accessLevel} />
+      {contactTarget && (
+        <ContactOverlay open={!!contactTarget} onClose={() => setContactTarget(null)} target={contactTarget} />
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import ContactOverlay from '@/components/overlays/ContactOverlay';
 
 const CATEGORIES_BUSCO = ['Servicios', 'Inversión', 'Clientes', 'Talento', 'Espacios'];
 const CATEGORIES_OFREZCO = ['Tecnología', 'Red contactos', 'Expertise', 'Espacio', 'Inversión'];
@@ -13,8 +14,11 @@ export default function SinergiasPage() {
   const [cats, setCats] = useState<string[]>([]);
   const [budget, setBudget] = useState('');
   const [synergies, setSynergies] = useState<any[]>([]);
+  const [matches, setMatches] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [contactTarget, setContactTarget] = useState<any>(null);
+  const [matchContactTarget, setMatchContactTarget] = useState<any>(null);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -30,6 +34,11 @@ export default function SinergiasPage() {
     ]);
     setUserId(user?.id ?? null);
     setSynergies(data ?? []);
+    // Load persisted matches
+    try {
+      const res = await fetch('/api/matches');
+      if (res.ok) setMatches(await res.json());
+    } catch (_) { /* ignore */ }
   };
 
   const toggleCat = (c: string) => setCats(p => p.includes(c) ? p.filter(x => x !== c) : [...p, c]);
@@ -41,8 +50,11 @@ export default function SinergiasPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     await supabase.from('synergies').insert({ user_id: user.id, type: tab, description: text, categories: cats, budget_range: budget });
-    // Recalculate synergy-based matches for ALL users so both sides see the match
-    await fetch('/api/matches', { method: 'PATCH' });
+    // AI-enriched recalculation for current user (also triggers global via PATCH)
+    await Promise.all([
+      fetch('/api/matches', { method: 'POST' }),
+      fetch('/api/matches', { method: 'PATCH' }),
+    ]);
     setText(''); setCats([]); setBudget('');
     await loadAll();
     setLoading(false);
@@ -94,6 +106,7 @@ export default function SinergiasPage() {
   };
 
   return (
+    <>
     <div className="sc on" id="sc-sinergias" style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Tabs */}
       <div className="bo-tabs">
@@ -165,8 +178,78 @@ export default function SinergiasPage() {
           </div>
         )}
 
+        {/* ── Matches IA ──────────────────────────────────────────────── */}
+        {matches.length > 0 && (
+          <>
+            <div className="slbl" style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 6 }}>
+              Matches sugeridos por IA
+              <span style={{ background: 'var(--tl)', color: '#fff', borderRadius: 99, fontSize: 10, fontWeight: 700, padding: '1px 7px' }}>
+                {matches.length}
+              </span>
+            </div>
+            {matches.map(m => {
+              const other = m.other;
+              const name = other?.full_name || 'Usuario';
+              const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+              const score: number = m.score ?? 0;
+              const scoreColor = score >= 70 ? '#1A4731' : score >= 40 ? '#B8922E' : '#999';
+              return (
+                <div key={m.id} style={{
+                  background: 'var(--white)', border: '1px solid var(--bdr)', borderRadius: 14,
+                  padding: '12px 14px', marginBottom: 8,
+                }}>
+                  {m.is_locked ? (
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🔒</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>███ ███████</div>
+                        <div style={{ fontSize: 11, color: 'var(--mut)' }}>Nivel {m.requires_level} requerido</div>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: '#ccc' }}>{score}%</div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{
+                          width: 36, height: 36, borderRadius: 10, background: 'rgba(26,71,49,.1)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 12, fontWeight: 700, color: 'var(--tl)', flexShrink: 0,
+                        }}>{initials}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--mut)' }}>{other?.company_name || other?.sector || 'Empresario'}</div>
+                        </div>
+                        <div style={{ fontSize: 15, fontWeight: 900, color: scoreColor, flexShrink: 0 }}>{score}%</div>
+                      </div>
+                      {m.score_reasons?.length > 0 && (
+                        <div style={{ fontSize: 11, color: 'var(--tl)', background: 'rgba(26,71,49,.06)', borderRadius: 8, padding: '6px 10px', marginBottom: 8, lineHeight: 1.5 }}>
+                          ✦ {(m.score_reasons as string[]).slice(0, 2).join(' · ')}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => setMatchContactTarget(other)}
+                        style={{ width: '100%', background: 'var(--tl)', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 0', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Contactar →
+                      </button>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </>
+        )}
+
         <div style={{ height: 20 }} />
       </div>
     </div>
+
+    {matchContactTarget && (
+      <ContactOverlay open={!!matchContactTarget} onClose={() => setMatchContactTarget(null)} target={matchContactTarget} />
+    )}
+    {contactTarget && (
+      <ContactOverlay open={!!contactTarget} onClose={() => setContactTarget(null)} target={contactTarget} />
+    )}
+    </>
   );
 }
