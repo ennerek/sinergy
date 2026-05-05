@@ -359,15 +359,6 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
   );
 }
 
-
-interface Props {
-  currentUserId: string;
-  profile: any;
-  reflections: any[];
-  mentors: any[];
-}
-
-export default function MentoresClient({ currentUserId, profile, reflections, mentors }: Props) {
   const [chatOpen, setChatOpen] = useState(false);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
