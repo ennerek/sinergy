@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
 
   const { data } = await supabase
     .from('reflections')
-    .select('*, profiles(full_name, sector), reflection_replies(id, content, profiles(full_name))')
+    .select('*, profiles(full_name, sector, avatar_url), reflection_replies(id)')
+    .eq('is_active', true)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import ChatOverlay from '@/components/overlays/ChatOverlay';
 
 interface Props {
@@ -20,15 +19,16 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
   const [tab, setTab] = useState<'all' | 'mine'>('all');
 
   const loadReflections = useCallback(async () => {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('reflections')
-      .select('*, profiles(full_name, sector, avatar_url), reflection_replies(id)')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(30);
-    if (!error && data) {
-      setLocalReflections(data);
+    try {
+      const res = await fetch('/api/reflections');
+      if (res.ok) {
+        const data = await res.json();
+        setLocalReflections(data);
+      } else {
+        console.error('Error loading reflections:', res.status, await res.text());
+      }
+    } catch (e) {
+      console.error('Error loading reflections:', e);
     }
     setLoadingReflections(false);
   }, []);
@@ -38,10 +38,20 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
   const publish = async () => {
     if (!text.trim() || sending) return;
     setSending(true);
-    const supabase = createClient();
-    const { error } = await supabase.from('reflections').insert({ user_id: currentUserId, content: text });
-    if (error) {
-      console.error('Error publishing reflection:', error.message);
+    try {
+      const res = await fetch('/api/reflections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: text }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        console.error('Error publishing reflection:', err.error);
+        setSending(false);
+        return;
+      }
+    } catch (e) {
+      console.error('Error publishing reflection:', e);
       setSending(false);
       return;
     }
