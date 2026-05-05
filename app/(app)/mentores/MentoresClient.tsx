@@ -83,6 +83,11 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
           </div>
         )}
 
+        {/* DEBUG: remove after fix */}
+        <div style={{ background: '#f0f4ff', border: '1px solid #bcd', borderRadius: 8, padding: '6px 10px', marginBottom: 8, fontSize: 11, color: '#339', wordBreak: 'break-all' }}>
+          <strong>DEBUG</strong> · userId: {currentUserId || '⚠️ null'} · reflexiones cargadas: {localReflections.length} · loading: {String(loadingReflections)}
+        </div>
+
         {/* Post reflection */}
         <div className="thread-composer">
           <textarea
