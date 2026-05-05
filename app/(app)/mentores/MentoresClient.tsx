@@ -21,14 +21,15 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
 
   const loadReflections = useCallback(async () => {
     const supabase = createClient();
-    const query = supabase
+    const { data, error } = await supabase
       .from('reflections')
       .select('*, profiles(full_name, sector, avatar_url), reflection_replies(id)')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(30);
-    const { data } = await query;
-    setLocalReflections(data ?? []);
+    if (!error && data) {
+      setLocalReflections(data);
+    }
     setLoadingReflections(false);
   }, []);
 
@@ -38,7 +39,12 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
     if (!text.trim() || sending) return;
     setSending(true);
     const supabase = createClient();
-    await supabase.from('reflections').insert({ user_id: currentUserId, content: text });
+    const { error } = await supabase.from('reflections').insert({ user_id: currentUserId, content: text });
+    if (error) {
+      console.error('Error publishing reflection:', error.message);
+      setSending(false);
+      return;
+    }
     setText('');
     await loadReflections();
     setSending(false);
@@ -63,7 +69,7 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
             placeholder="Comparte un aprendizaje, dilema o reflexión con la red..."
             value={text}
             onChange={e => setText(e.target.value)}
-            maxLength={500}
+            maxLength={280}
             style={{ width: '100%', border: 'none', background: 'transparent', resize: 'none', outline: 'none', fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: 'var(--ink)', minHeight: 64, lineHeight: 1.5 }}
           />
           <button className="post-btn" onClick={publish} disabled={sending || !text.trim()}>
