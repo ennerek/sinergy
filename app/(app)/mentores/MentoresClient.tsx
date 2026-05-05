@@ -17,6 +17,7 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
   const [localReflections, setLocalReflections] = useState(reflections);
   const [loadingReflections, setLoadingReflections] = useState(reflections.length === 0);
   const [tab, setTab] = useState<'all' | 'mine'>('all');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const loadReflections = useCallback(async () => {
     try {
@@ -25,10 +26,11 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
         const data = await res.json();
         setLocalReflections(data);
       } else {
-        console.error('Error loading reflections:', res.status, await res.text());
+        const body = await res.text();
+        setErrorMsg(`Error cargando reflexiones: ${res.status} ${body}`);
       }
-    } catch (e) {
-      console.error('Error loading reflections:', e);
+    } catch (e: any) {
+      setErrorMsg(`Error de red: ${e?.message ?? e}`);
     }
     setLoadingReflections(false);
   }, []);
@@ -37,6 +39,7 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
 
   const publish = async () => {
     if (!text.trim() || sending) return;
+    setErrorMsg(null);
     setSending(true);
     try {
       const res = await fetch('/api/reflections', {
@@ -45,13 +48,13 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
         body: JSON.stringify({ content: text }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        console.error('Error publishing reflection:', err.error);
+        const body = await res.text();
+        setErrorMsg(`Error al publicar: ${res.status} ${body}`);
         setSending(false);
         return;
       }
-    } catch (e) {
-      console.error('Error publishing reflection:', e);
+    } catch (e: any) {
+      setErrorMsg(`Error de red al publicar: ${e?.message ?? e}`);
       setSending(false);
       return;
     }
@@ -72,6 +75,13 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
           </div>
           <span className="match-arrow">›</span>
         </div>
+
+        {/* Error message */}
+        {errorMsg && (
+          <div style={{ background: '#fee', border: '1px solid #fcc', borderRadius: 8, padding: '8px 12px', marginBottom: 8, fontSize: 12, color: '#c00' }}>
+            {errorMsg}
+          </div>
+        )}
 
         {/* Post reflection */}
         <div className="thread-composer">
