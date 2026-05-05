@@ -18,18 +18,21 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
   const [loadingReflections, setLoadingReflections] = useState(reflections.length === 0);
   const [tab, setTab] = useState<'all' | 'mine'>('all');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('—');
 
   const loadReflections = useCallback(async () => {
     try {
       const res = await fetch('/api/reflections');
+      const text = await res.text();
+      setDebugInfo(`GET ${res.status}: ${text.slice(0, 300)}`);
       if (res.ok) {
-        const data = await res.json();
+        const data = JSON.parse(text);
         setLocalReflections(data);
       } else {
-        const body = await res.text();
-        setErrorMsg(`Error cargando reflexiones: ${res.status} ${body}`);
+        setErrorMsg(`Error cargando reflexiones: ${res.status} ${text}`);
       }
     } catch (e: any) {
+      setDebugInfo(`Excepción: ${e?.message ?? e}`);
       setErrorMsg(`Error de red: ${e?.message ?? e}`);
     }
     setLoadingReflections(false);
@@ -47,13 +50,15 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: text }),
       });
+      const body = await res.text();
+      setDebugInfo(`POST ${res.status}: ${body.slice(0, 300)}`);
       if (!res.ok) {
-        const body = await res.text();
         setErrorMsg(`Error al publicar: ${res.status} ${body}`);
         setSending(false);
         return;
       }
     } catch (e: any) {
+      setDebugInfo(`POST excepción: ${e?.message ?? e}`);
       setErrorMsg(`Error de red al publicar: ${e?.message ?? e}`);
       setSending(false);
       return;
@@ -85,7 +90,8 @@ export default function MentoresClient({ currentUserId, profile, reflections, me
 
         {/* DEBUG: remove after fix */}
         <div style={{ background: '#f0f4ff', border: '1px solid #bcd', borderRadius: 8, padding: '6px 10px', marginBottom: 8, fontSize: 11, color: '#339', wordBreak: 'break-all' }}>
-          <strong>DEBUG</strong> · userId: {currentUserId || '⚠️ null'} · reflexiones cargadas: {localReflections.length} · loading: {String(loadingReflections)}
+          <strong>DEBUG</strong> · userId: {currentUserId || '⚠️ null'} · reflexiones cargadas: {localReflections.length} · loading: {String(loadingReflections)}<br/>
+          <strong>API response:</strong> {debugInfo}
         </div>
 
         {/* Post reflection */}

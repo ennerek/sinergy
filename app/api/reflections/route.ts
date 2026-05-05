@@ -11,12 +11,15 @@ export async function GET(request: NextRequest) {
   const limit = 20;
   const offset = (page - 1) * limit;
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('reflections')
     .select('*, profiles(full_name, sector, avatar_url), reflection_replies(id)')
     .eq('is_active', true)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
+
+  if (error) console.error('[reflections GET] Supabase error:', error);
+  console.log('[reflections GET] rows returned:', data?.length ?? 0, 'user:', user.id);
 
   return NextResponse.json(data ?? []);
 }
